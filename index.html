@@ -452,14 +452,14 @@ h1{margin:0;font-size:18px;}
 
 /* 裏：failtip.png を少し濃く・くっきり */
 .round-chip.back{
-  background:url('failtip.png') center no-repeat;
+  background:url('failtip.jpg') center no-repeat;
   background-size:135%;
   filter:contrast(1.25) saturate(1.25);
 }
 
 /* 表：successtip.png を少し濃く・くっきり */
 .round-chip.front{
-  background:url('successtip.png') center no-repeat;
+  background:url('successtip.jpg') center no-repeat;
   background-size:135%;
   filter:contrast(1.3) saturate(1.3) brightness(1.05);
 }
@@ -493,7 +493,7 @@ h1{margin:0;font-size:18px;}
   transform:translate(-50%,-50%) scale(0);
   width:180px;
   height:270px;
-  background-image:url('boomcard.png'); /* 1 のカード画像 */
+  background-image:url('boomcard.jpg'); /* 1 のカード画像 */
   background-position:center;
   background-repeat:no-repeat;
   background-size:contain;
@@ -544,7 +544,7 @@ h1{margin:0;font-size:18px;}
   /* 下地を少し濃くして、真ん中のチップをはっきり */
   background:
     radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), rgba(255,255,255,0) 55%),
-    url('successtip.png') center no-repeat;
+    url('successtip.jpg') center no-repeat;
   background-size:120%, 85%;
   box-shadow:0 0 0 rgba(0,0,0,0);
   opacity:0;
@@ -1254,11 +1254,11 @@ function subscribeRoundChipsCounter(){
 function setCardFrontImage(el, value){
   let img = '';
   if (value === 1 || value === '1') {
-    img = 'boomcard.png';          // ★ 1 のカード
+    img = 'boomcard.jpg';          // ★ 1 のカード
   } else if (value === 2 || value === '2') {
-    img = 'successcard.png';       // ★ 2 のカード
+    img = 'successcard.jpg';       // ★ 2 のカード
   } else if (value === 3 || value === '3') {
-    img = 'shiin.png';             // ★ 3 のカード
+    img = 'shiin.jpg';             // ★ 3 のカード
   }
 
   if (img){
