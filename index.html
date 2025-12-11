@@ -26,7 +26,19 @@ h1{margin:0;font-size:18px;}
 .tab{padding:6px 10px;border:1px solid #ddd;border-radius:999px;cursor:pointer;user-select:none;position:relative;}
 .tab.disabled::after{content:'✕';position:absolute;inset:0;display:grid;place-items:center;font-size:18px;font-weight:700;color:#b91c1c;pointer-events:none;}
 .tab.active{background:#111;color:#fff;border-color:#111;}
-
+main.in-room{
+  background-image:url('timebombback.jpg');
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+main{
+  min-height:calc(100vh - 60px); /* 必要なら調整。header 分を引いた高さ */
+  background-image:url('mae.jpg');
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+}
 /* ★ プレイヤー円配置用 */
 .player-circle{
   position:relative;
@@ -187,12 +199,12 @@ h1{margin:0;font-size:18px;}
 
 /* 〇側：policerole.png を貼る */
 .my-role-card.good{
-  background-image:url('policerole.png');
+  background-image:url('policerole.jpg');
 }
 
 /* ✕側：bombrole.png を貼る */
 .my-role-card.bad{
-  background-image:url('bombrole.png');
+  background-image:url('bombrole.jpg');
 }
 
 
@@ -1831,6 +1843,7 @@ btnJoin.addEventListener('click', async () => {
   joinBox.classList.add('hidden');
   lobby.classList.remove('hidden');
   lobby.classList.add('entered'); 
+  document.querySelector('main')?.classList.add('in-room');
 
   // ★ 再接続時などに、既存の自分の席があれば復元
   await restoreSeatFromDB();
@@ -2159,9 +2172,9 @@ if (state.sOwner === p.id && p.id !== state.userId){
         roleMini.className = 'mini-card mini-role-card';
         const r = state.roles[p.id].role;
         if (r === 'O'){
-          roleMini.style.backgroundImage = "url('policerole.png')";
+          roleMini.style.backgroundImage = "url('policerole.jpg')";
         } else if (r === 'X'){
-          roleMini.style.backgroundImage = "url('bombrole.png')";
+          roleMini.style.backgroundImage = "url('bombrole.jpg')";
         } else {
           roleMini.textContent = '?';
         }
