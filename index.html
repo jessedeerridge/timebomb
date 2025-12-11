@@ -2019,6 +2019,9 @@ function subscribePlayers(){
       await renderSeatTabs();
       seatPop.classList.remove('hidden');
     }
+    if (!seatPop.classList.contains('hidden')) {
+      await renderSeatTabs();
+    }
 
     renderPlayerCircle(players);
 
@@ -2611,4 +2614,5 @@ btnGameStart.addEventListener('click', async () => {
 
 </body>
 </html>
+
 
