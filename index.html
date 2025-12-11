@@ -1,10 +1,10 @@
 
-<!DOCTYPE html>    
+<!DOCTYPE html>     
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>テンプレ</title>
+<title>タイムボム</title>
 <style>
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fff;color:#111;}
 header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #eee;}
@@ -18,7 +18,7 @@ h1{margin:0;font-size:18px;}
 .hidden{display:none;}
 #lobby{padding:20px;border-top:1px solid #eee;}
 .copy-btn.copied, .btn.ghost.copied{background:#16a34a;color:#fff;border-color:#16a34a;}
-.seat-pop{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);background:orange;border:1px solid #eee;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12);padding:10px;z-index:220;display:flex;flex-direction:column;gap:10px;min-width:280px;}
+.seat-pop{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);background:#00c9e8;border:1px solid #eee;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12);padding:10px;z-index:220;display:flex;flex-direction:column;gap:10px;min-width:280px;}
 .seat-pop.hidden{display:none;}
 .seat-pop .row{display:flex;gap:8px;align-items:center;}
 .seat-pop label{width:84px;font-size:13px;}
@@ -441,25 +441,27 @@ h1{margin:0;font-size:18px;}
   gap:4px;
 }
 .round-chip{
- width:24px;   /* ★ 18px → 27px に拡大（1.5倍） */
-  height:24px;  
+  width:24px;
+  height:24px;
   border-radius:50%;
-  /* ★ 輪郭削除 → border消す */
   border:none;
-  box-shadow:0 2px 4px rgba(0,0,0,.25);
+  box-shadow:0 3px 6px rgba(0,0,0,.35);
   overflow:hidden;
+  background-color:#0b1928;          /* 濃いめの下地 */
 }
 
-/* 裏：failtip.png を1.5倍で表示 */
+/* 裏：failtip.png を少し濃く・くっきり */
 .round-chip.back{
   background:url('failtip.png') center no-repeat;
-  background-size:130%;  /* ★ 画像を1.5倍に拡大して見せる */
+  background-size:135%;
+  filter:contrast(1.25) saturate(1.25);
 }
 
-/* 表：successtip.png を1.5倍で表示 */
+/* 表：successtip.png を少し濃く・くっきり */
 .round-chip.front{
   background:url('successtip.png') center no-repeat;
-  background-size:130%;  /* ★ 画像を1.5倍に拡大して見せる */
+  background-size:135%;
+  filter:contrast(1.3) saturate(1.3) brightness(1.05);
 }
 
 /* ▼ 自分の手札の左に出す「縮小版 正体カード」 */
@@ -478,6 +480,9 @@ h1{margin:0;font-size:18px;}
 /* ▼ 他プレイヤーの mini-hand 用の正体カード（サイズは mini-card と同じで OK） */
 .player-tag .mini-role-card{
   border-color:#000; /* 役職だけ枠を強める */
+  width:26px;    /* ← 好きなサイズに変更 */
+  height:39px;   /* ← 2:3 のまま少し大きく */
+  border-color:#000; /* 元の枠強調はそのまま */
 }
 
 /* ★ 1（boomcard）の拡大＆揺れアニメ用オーバーレイ */
@@ -499,7 +504,7 @@ h1{margin:0;font-size:18px;}
 
 /* アニメ発火時に付くクラス */
 .boom-one-overlay.show{
-  animation: boomOnePop 2s cubic-bezier(.22,.84,.44,1) forwards;
+  animation: boomOnePop 3s cubic-bezier(.22,.84,.44,1) forwards;
 }
 
 @keyframes boomOnePop{
@@ -526,6 +531,105 @@ h1{margin:0;font-size:18px;}
   }
 }
 
+/* ★ 丸チップが全部表になったときの「キラッ」アニメ用 大きい丸チップ */
+/* ★ 丸チップが全部表になったときの「キラッ」アニメ用 大きい丸チップ */
+.big-round-chip-overlay{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%) scale(0.7);
+  width:190px;
+  height:190px;
+  border-radius:50%;
+  /* 下地を少し濃くして、真ん中のチップをはっきり */
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), rgba(255,255,255,0) 55%),
+    url('successtip.png') center no-repeat;
+  background-size:120%, 85%;
+  box-shadow:0 0 0 rgba(0,0,0,0);
+  opacity:0;
+  z-index:280;
+  pointer-events:none;
+  filter:contrast(1.15) saturate(1.25);
+}
+
+/* アニメ中に付くクラス */
+.big-round-chip-overlay.show{
+  animation: bigRoundChipFlash 3.4s cubic-bezier(.22,.84,.44,1) forwards;
+}
+
+/* チップ本体：奥から手前にグッと出て、キラッと光って引いていく */
+@keyframes bigRoundChipFlash{
+  0%{
+    transform:translate(-50%,-50%) scale(0.7);
+    opacity:0;
+    box-shadow:0 0 0 rgba(0,0,0,0);
+    filter:contrast(1.1) saturate(1.2) brightness(0.9);
+  }
+  25%{
+    transform:translate(-50%,-52%) scale(1.15);
+    opacity:1;
+    box-shadow:0 14px 40px rgba(0,0,0,.45);
+    filter:contrast(1.2) saturate(1.25) brightness(1.2);
+  }
+  40%{
+    /* 手前で「キラッ」と一番明るく */
+    transform:translate(-50%,-52%) scale(1.22);
+    box-shadow:0 18px 70px rgba(255,255,255,.85);
+    filter:contrast(1.3) saturate(1.3) brightness(1.65);
+  }
+  70%{
+    transform:translate(-50%,-50%) scale(1.05);
+    box-shadow:0 10px 26px rgba(0,0,0,.4);
+    filter:contrast(1.18) saturate(1.2) brightness(1.1);
+  }
+  100%{
+    transform:translate(-50%,-50%) scale(1.0);
+    opacity:0;
+    box-shadow:0 0 0 rgba(0,0,0,0);
+    filter:contrast(1.0) saturate(1.0) brightness(1.0);
+  }
+}
+
+/* ★ キラッと走るハイライト線（手前にスッと来る感じ） */
+.big-round-chip-overlay::after{
+  content:'';
+  position:absolute;
+  inset:-40%;
+  background:linear-gradient(
+    120deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0) 40%,
+    rgba(255,255,255,.9) 50%,
+    rgba(255,255,255,0) 60%,
+    rgba(255,255,255,0) 100%
+  );
+  transform:translateX(-120%) rotate(8deg);
+  opacity:0;
+  pointer-events:none;
+}
+
+/* .show が付いた時だけ、ハイライト線をスッと走らせる */
+.big-round-chip-overlay.show::after{
+  animation: chipSparkle 0.9s ease-out 0.15s forwards;
+}
+
+@keyframes chipSparkle{
+  0%{
+    transform:translateX(-120%) rotate(8deg);
+    opacity:0;
+  }
+  25%{
+    opacity:1;
+  }
+  60%{
+    transform:translateX(120%) rotate(8deg);
+    opacity:1;
+  }
+  100%{
+    opacity:0;
+  }
+}
 
 
 </style>
@@ -605,6 +709,8 @@ h1{margin:0;font-size:18px;}
     押すと全プレイヤーに正体カードとSカードが配られ、カードが5枚ずつ配られます。
   </div>
   <div class="start-pop-actions">
+    <!-- ★ テーブルリセットボタンを追加 -->
+    <button id="btnTableReset" class="btn ghost">リセット</button>
     <button id="btnGameStart" class="btn primary">スタート</button>
   </div>
 </div>
@@ -616,19 +722,21 @@ h1{margin:0;font-size:18px;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getDatabase, ref, set, get, update, onDisconnect, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
+// ▼ Firebase 設定
 const firebaseConfig = {
-  apiKey: "AIzaSyDUP1foVQnitM45do_UtYLkcc9gvgQC-xw",
-  authDomain: "timebomb-3b0c7.firebaseapp.com",
-  databaseURL: "https://timebomb-3b0c7-default-rtdb.firebaseio.com", // ★推奨：Realtime DB を使うなら追加
-  projectId: "timebomb-3b0c7",
-  storageBucket: "timebomb-3b0c7.firebasestorage.app",
-  messagingSenderId: "532935786630",
-  appId: "1:532935786630:web:ef1f97c862bfaad67d1107",
-  measurementId: "G-K8NRR8K64Y"
+  apiKey: "AIzaSyAMeKfMoHt9qOQ2VuUBpkrKuei7yGBbEi8",
+  authDomain: "cheesetheft-fd52f.firebaseapp.com",
+  databaseURL: "https://cheesetheft-fd52f-default-rtdb.firebaseio.com",
+  projectId: "cheesetheft-fd52f",
+  storageBucket: "cheesetheft-fd52f.firebasestorage.app",
+  messagingSenderId: "298688959395",
+  appId: "1:298688959395:web:6ac2c3eb214201f2020016",
+  measurementId: "G-HPDFTCLR8H"
 };
 
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
+
 // ★ userId をタブ単位で固定（タブごとに別ID）
 const savedUserId = sessionStorage.getItem('bbUserId') || crypto.randomUUID();
 sessionStorage.setItem('bbUserId', savedUserId);
@@ -645,7 +753,8 @@ const state = {
   round: 0,          // ★ 現在のラウンド番号（0=未開始）
   centerDeckCards: [],   // ★ 中央山札の中身（購読で保持）
   centerStackLevel: 0,   // ★ 回収アニメが起きた回数（重なりレベル）
-  fullOpenMode: false    // ★ 1 が公開されたあと「全員が全員の手札を公開できる」モード
+  fullOpenMode: false,    // ★ 1 が公開されたあと「全員が全員の手札を公開できる」モード
+  roundChipsFrontCount: 0  
 };
 
 
@@ -653,6 +762,10 @@ const state = {
 // ★ アニメーション中の二重実行防止
 let isCollectAnimating = false;
 let handsDirtyWhileAnimating = false;
+let lastAllChipsFront = false;
+let roundCollectTimerId = null;           
+let stopRoundCollectForSuccess = false;  
+let stopRoundCollectForBoom = false;     
 
 const joinBox = document.getElementById('joinBox');
 const inputName = document.getElementById('userName');
@@ -691,6 +804,7 @@ const hostSettingsBtn = document.getElementById('hostSettingsBtn');
 const startPop = document.getElementById('startPop');
 const btnStartPopClose = document.getElementById('btnStartPopClose');
 const btnGameStart = document.getElementById('btnGameStart');
+const btnTableReset = document.getElementById('btnTableReset'); // ★追加
 
 // ★ ラウンド開始ポップ
 const roundBanner = document.getElementById('roundBanner');
@@ -712,11 +826,14 @@ function renderCenterDeck(cards){
 
   deckRow.innerHTML = '';
 
-  // 現在ラウンド数：1 → 3枚重ね、2 → 6枚重ね、3 → 9枚重ね…
-  const currentRound = state.round || 0;
-  const stackCount = currentRound > 0 ? currentRound * 3 : 0;
+  // ★「ラウンド数」ではなく、「公開札回収回数(centerStackLevel)」で山札枚数を決める
+  //   1回目の公開札回収 → 3枚
+  //   2回目の公開札回収 → 6枚
+  //   3回目の公開札回収 → 9枚 …
+  const stackLevel = state.centerStackLevel || 0;
+  const stackCount = stackLevel > 0 ? stackLevel * 3 : 0;
 
-  // ラウンドが始まっていない / 山札が空なら非表示
+  // 回収がまだ一度も行われていない / 山札が空なら非表示
   if (!cards || !cards.length || stackCount === 0){
     deckRow.style.display = 'none';
     return;
@@ -724,42 +841,36 @@ function renderCenterDeck(cards){
 
   deckRow.style.display = 'block';
 
-  const CARD_W = 16;   // mini-card と同じ
-  const CARD_H = 22;   // mini-card と同じ
-  const OFFSET = 2;    // 1枚ごとの縦ずれ量（固定）
+  const CARD_W = 16;
+  const CARD_H = 22;
+  const OFFSET = 2;
 
-  // コンテナ自体のサイズ（幅は1枚分、高さは「重なり枚数」に合わせる）
   deckRow.style.width  = CARD_W + 'px';
   deckRow.style.height = (CARD_H + (stackCount - 1) * OFFSET) + 'px';
 
   const total = cards.length;
-  const topIndex = total - 1;  // 実際の山札の一番上
+  const topIndex = total - 1;
 
   for (let i = 0; i < stackCount; i++){
     const cardEl = document.createElement('div');
     cardEl.className = 'center-deck-card';
 
-    // 上のカードほど上側に来る（stackCount-1 - i）
     const dx = 0;
     const dy = (stackCount - 1 - i) * OFFSET;
 
     cardEl.style.left = dx + 'px';
     cardEl.style.top  = dy + 'px';
-    cardEl.style.zIndex = 10 + i;   // 一番上のカードが zIndex 最大
+    cardEl.style.zIndex = 10 + i;
 
-    // 一番上の1枚だけ実際のトップカードを表向きで表示
-    if (i === stackCount - 1 && topIndex >= 0){
-      cardEl.classList.add('is-top');
-      const v = cards[topIndex];
-
-      // ★ 一番上だけ実際のカード画像
-      setCardFrontImage(cardEl, v);
-    } else {
-      // ★ 下にあるカードは裏面だけ（どの数字かは見せない）
-      cardEl.classList.add('is-back');
-      setCardBackImage(cardEl);
+    let srcIndex = 0;
+    if (total > 0){
+      srcIndex = Math.max(0, total - stackCount + i);
+      if (srcIndex >= total) srcIndex = total - 1;
     }
 
+    const v = cards[srcIndex];
+    cardEl.classList.add('is-top');
+    setCardFrontImage(cardEl, v);
 
     deckRow.appendChild(cardEl);
   }
@@ -837,7 +948,6 @@ for(let i=0;i<rowSize;i++){
   });
 }
 
-// ★ 最新のプレイヤー人数と「表の2の枚数」から丸チップを更新
 function updateRoundChips(){
   if (!roundChipRow) return;
 
@@ -845,11 +955,37 @@ function updateRoundChips(){
   if (!playerCount){
     roundChipRow.innerHTML = '';
     roundChipRow.style.display = 'none';
+    // ★ 人数が0になったらフラグもリセット
+    lastAllChipsFront = false;
     return;
   }
 
-  const openTwoCount = countOpenTwos();
-  renderRoundChips(playerCount, openTwoCount);
+  // ★ これまでに表になった 2 の累計枚数
+  const frontCount = state.roundChipsFrontCount || 0;
+
+  // ★ 丸チップは「累計表枚数」で描画（ラウンドが変わっても維持）
+  renderRoundChips(playerCount, frontCount);
+
+  // ★ 「表になった2の累計枚数」がプレイヤー人数以上 → 丸チップが全て表
+  const isAllFront = (frontCount >= playerCount && playerCount > 0);
+
+  if (isAllFront && !lastAllChipsFront){
+    // ★ ここで「ラウンド回収」を止める
+    stopRoundCollectForSuccess = true;
+
+    // すでに予約されている回収タイマーがあればキャンセル
+    if (roundCollectTimerId){
+      clearTimeout(roundCollectTimerId);
+      roundCollectTimerId = null;
+    }
+
+    // 少し間を置いてからキラアニメ
+    setTimeout(() => {
+      showBigRoundChipAnimation();
+    }, 1000);
+  }
+
+  lastAllChipsFront = isAllFront;
 }
 
 // ランダムルームコード生成
@@ -919,6 +1055,39 @@ if (roundBanner){
   });
 }
 
+function showBigRoundChipAnimation(){
+  let el = document.getElementById('bigRoundChipOverlay');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'bigRoundChipOverlay';
+    el.className = 'big-round-chip-overlay';
+    document.body.appendChild(el);
+
+    // アニメ終了後に .show を外しておく
+    el.addEventListener('animationend', () => {
+      el.classList.remove('show');
+    });
+  }
+
+  // 毎回アニメをリスタート
+  el.classList.remove('show');
+  void el.offsetWidth; // リフローしてアニメをリセット
+  el.classList.add('show');
+
+  // ★ ホストだけ：キラアニメ終了から1秒後に
+  //   正体公開＆全カード自由モード（fullOpenMode）をON
+  //   bigRoundChipFlash が 3秒 → ＋1秒待つので 4000ms
+  if (state.isHost && state.roomCode){
+    setTimeout(() => {
+      // すでに別ルート（1カード爆発）でフル公開していたら何もしない
+      if (state.fullOpenMode) return;
+
+      update(ref(db, `rooms/${state.roomCode}`), {
+        fullOpenMode: true
+      });
+    }, 2000);
+  }
+}
 
 
 /* ★ 1 が出た瞬間に中央で揺れる 1 カードアニメ */
@@ -973,8 +1142,6 @@ function subscribeRound(){
 }
 
 
-// ★ どこかの手札で「1」が公開されたかチェックし、
-//    1 の拡大アニメ → 0.5秒後にホストが fullOpenMode を ON にする
 function detectAndActivateFullOpenMode(hands){
   // すでにフル公開モードなら何もしない
   if (state.fullOpenMode) return;
@@ -997,6 +1164,20 @@ function detectAndActivateFullOpenMode(hands){
   });
 
   if (!hasOpenOne) return;
+
+  // ★★★ ここから追加 ★★★
+  // 1カードが公開された瞬間に、ラウンド回収を止める
+  stopRoundCollectForBoom = true;
+
+  // すでに予約されている回収タイマーがあればキャンセル
+  if (roundCollectTimerId){
+    clearTimeout(roundCollectTimerId);
+    roundCollectTimerId = null;
+  }
+  // 念のためアニメ中フラグも解除
+  isCollectAnimating = false;
+  handsDirtyWhileAnimating = false;
+  // ★★★ ここまで追加 ★★★
 
   // ① 全クライアントで 1 の拡大アニメを再生
   showBoomOneAnimation();
@@ -1047,6 +1228,26 @@ function subscribeFullOpenMode(){
     renderHands();
   });
 }
+
+function subscribeRoundChipsCounter(){
+  if (!state.roomCode) return;
+  const cntRef = ref(db, `rooms/${state.roomCode}/roundChipsFrontCount`);
+  onValue(cntRef, snap => {
+    const v = snap.val();
+    state.roundChipsFrontCount = (typeof v === 'number') ? v : 0;
+
+    // ★ カウンタが 0 に戻った＝ゲームリセット or 新しいゲーム開始
+    //    → 成功後に回収停止するためのローカルフラグも全端末でリセット
+    if (state.roundChipsFrontCount === 0){
+      stopRoundCollectForSuccess = false;
+      lastAllChipsFront = false;
+    }
+
+    // 人数や他の状態と合わせて再描画
+    updateRoundChips();
+  });
+}
+
 
 
 // ★ カード表：数値(1,2,3)に応じて画像をセット
@@ -1165,12 +1366,14 @@ function renderHands(){
   }
 }
 
-/* ★★ ここが今回の修正ポイント（ホスト以外もアニメ再生） ★★ */
 function checkOpenCardsAndCollect(){
   // ① アニメの判定は全員で行う
   //    （実際に DB を更新するのはアニメ関数内で state.isHost のときだけ）
   if (isCollectAnimating) return;
 
+  // ★ 役職公開 ＆ 全カードOK仕様中は、カード回収アニメを一切行わない
+  if (state.fullOpenMode) return;
+if (stopRoundCollectForBoom) return; 
   // ② プレイヤー人数は「実際に手札を持っている人」で数える
   const hands = state.hands || {};
   const playerIds = Object.keys(hands).filter(pid => {
@@ -1181,7 +1384,32 @@ function checkOpenCardsAndCollect(){
   const playerCount = playerIds.length;
   if (!playerCount) return;
 
-  // ③ 公開枚数をカウント
+  // ★ 成功条件チェック：
+  //    表向きになっている「2」の枚数がプレイヤー人数以上なら
+  //    → このあとは成功演出だけで、ラウンド用の回収アニメは行わない
+  let openTwoCount = 0;
+  playerIds.forEach(pid => {
+    const hand = hands[pid];
+    const cards   = hand.cards || [];
+    const openArr = hand.open  || [];
+    for (let i = 0; i < cards.length; i++){
+      if (openArr[i] && Number(cards[i]) === 2){
+        openTwoCount++;
+      }
+    }
+  });
+  if (openTwoCount >= playerCount){
+    // ここで終了：成功状態ではラウンド用回収はしない
+     stopRoundCollectForSuccess = true;
+
+    if (roundCollectTimerId){
+      clearTimeout(roundCollectTimerId);
+      roundCollectTimerId = null;
+    }
+   return;
+  }
+
+  // ③ 公開枚数をカウント（通常ラウンド用）
   let openCount = 0;
   playerIds.forEach(pid => {
     const hand = hands[pid];
@@ -1191,12 +1419,66 @@ function checkOpenCardsAndCollect(){
     });
   });
 
-  // 「プレイヤー人数以上公開されたら」発火させる
   if (openCount >= playerCount && playerCount > 0){
-    setTimeout(() => {
+    // いったん既存のタイマーをキャンセル
+    if (roundCollectTimerId){
+      clearTimeout(roundCollectTimerId);
+      roundCollectTimerId = null;
+    }
+
+    // 新しい回収タイマーをセット
+    roundCollectTimerId = setTimeout(() => {
+      roundCollectTimerId = null;
+
+      // ★ その間に「成功して回収停止フラグ」が立っていたら何もしない
+      if (stopRoundCollectForSuccess) return;
+
       animateOpenCardsToCenter();
     }, 1000);
   }
+}
+
+async function finalizeOpenCardsWithoutAnimation(){
+  const hands = state.hands || {};
+  const newHands = {};
+  const collectedCards = [];
+
+  Object.entries(hands).forEach(([pid, hand]) => {
+    if (!hand || !Array.isArray(hand.cards)) {
+      newHands[pid] = hand;
+      return;
+    }
+    const cards   = hand.cards;
+    const openArr = hand.open || [];
+
+    const keptCards = [];
+    const keptOpen  = [];
+
+    for (let i = 0; i < cards.length; i++){
+      if (!openArr[i]) {
+        keptCards.push(cards[i]);
+        keptOpen.push(false);
+      } else {
+        collectedCards.push(cards[i]);
+      }
+    }
+
+    newHands[pid] = { cards: keptCards, open: keptOpen };
+  });
+
+  const newLevel = (state.centerStackLevel || 0) + 1;
+  state.centerStackLevel = newLevel;
+
+  await update(ref(db), {
+    [`rooms/${state.roomCode}/hands`]: newHands,
+    [`rooms/${state.roomCode}/centerDeck`]: collectedCards,
+    [`rooms/${state.roomCode}/centerStackLevel`]: newLevel
+  });
+
+  // そのまま次のステップ（全カード回収＆再配布）も入れてしまうならここで呼んでもOK
+  setTimeout(() => {
+    animateAllRemainingCardsToCenterAndRedistribute();
+  }, 1000);
 }
 
 
@@ -1207,8 +1489,13 @@ function checkOpenCardsAndCollect(){
 function animateOpenCardsToCenter(){
   // 2重起動防止（念のため）
   if (isCollectAnimating) return;
-  handsDirtyWhileAnimating = false;
-  isCollectAnimating = true;
+
+  // ★ 成功後はラウンド回収そのものを行わない
+  if (stopRoundCollectForSuccess) return;
+  if (stopRoundCollectForBoom) return; 
+  // ★ 全カードOK仕様中は、以降のラウンド用回収アニメは行わない
+  if (state.fullOpenMode) return;
+
 
   // 以前のラウンドで使ったレイヤーがあれば片付ける（保険）
   const oldLayer = document.getElementById('roundCollectLayer');
@@ -1217,13 +1504,27 @@ function animateOpenCardsToCenter(){
   }
 
   // 公開中の元カード（自分の大きいカード＋他人のミニカード）を拾う
-  const srcCards = document.querySelectorAll(
-    '.my-card.is-open, .mini-card.is-open'
-  );
+const srcCards = document.querySelectorAll(
+  '.my-card.is-open, .mini-card.is-open'
+);
 
-  if (!srcCards.length){
-    return;
+// ★ 公開中 DOM が見つからない場合：
+//  見た目のアニメはスキップしても、
+//  ホスト側では必ず「公開カード回収 → 再配布」まで進める
+if (!srcCards.length){
+  // 見た目を諦めて即ロジックだけ実行
+  if (state.roomCode && state.isHost){
+    finalizeOpenCardsWithoutAnimation();
   }
+
+  isCollectAnimating = false;
+  if (handsDirtyWhileAnimating){
+    handsDirtyWhileAnimating = false;
+    renderHands();
+  }
+  return;
+} handsDirtyWhileAnimating = false;
+ isCollectAnimating = true;
 
 
   // 飛ばすカードを載せる専用レイヤーを作成
@@ -1351,7 +1652,11 @@ function animateOpenCardsToCenter(){
 function animateAllRemainingCardsToCenterAndRedistribute(){
   // ★ ここでは isCollectAnimating で return しない
   //    （animateOpenCardsToCenter から必ず1回だけ呼ばれる前提）
-
+ if (state.fullOpenMode || stopRoundCollectForBoom) { 
+    isCollectAnimating = false;
+    handsDirtyWhileAnimating = false;
+    return;
+  }
   // 今、場に見えているカード（＝未公開カードなど）を全部対象にする
   const srcCards = document.querySelectorAll('.my-card, .mini-card');
   if (!srcCards.length){
@@ -1553,6 +1858,7 @@ btnJoin.addEventListener('click', async () => {
   // ★ 中央の山札5枚表示＆正体＋Sカード購読
   subscribeCenter();
   subscribeFullOpenMode();
+  subscribeRoundChipsCounter();   // ★ 追加：丸チップ枚数も購読
 
 });
 
@@ -1728,6 +2034,7 @@ async function onMiniCardClick(ownerId, cardIndex){
   if (openArr[cardIndex]) return;
 
   // ▼ まだフル公開モードでないとき → これまで通り「Sを持っている人だけ」操作可能
+  // ▼ まだフル公開モードでないとき → これまで通り「Sを持っている人だけ」操作可能
   if (!state.fullOpenMode){
     if (!state.sOwner || state.userId !== state.sOwner) return; // Sを持っていない
     if (ownerId === state.userId) return;                        // 他プレイヤーのみ
@@ -1738,10 +2045,19 @@ async function onMiniCardClick(ownerId, cardIndex){
     updates[`rooms/${state.roomCode}/hands/${ownerId}/open`] = openArr;
     updates[`rooms/${state.roomCode}/sOwner`] = ownerId; // Sカードの所有権移動
 
+    // ★ もしこのカードが「2」なら、丸チップの表枚数(累計)を+1
+    if (cards[cardIndex] === 2 || cards[cardIndex] === '2'){
+      const newCount = (state.roundChipsFrontCount || 0) + 1;
+      state.roundChipsFrontCount = newCount;
+      updates[`rooms/${state.roomCode}/roundChipsFrontCount`] = newCount;
+    }
+
     await update(ref(db), updates);
     return;
   }
 
+  // ▼ フル公開モードのとき → 誰でも他プレイヤーのカードを公開できる
+  //   （Sカードの移動は行わない）
   // ▼ フル公開モードのとき → 誰でも他プレイヤーのカードを公開できる
   //   （Sカードの移動は行わない）
   if (ownerId === state.userId) return; // 自分の mini-hand は存在しない想定だが一応ガード
@@ -1750,6 +2066,13 @@ async function onMiniCardClick(ownerId, cardIndex){
 
   const updates = {};
   updates[`rooms/${state.roomCode}/hands/${ownerId}/open`] = openArr;
+
+  // ★ ここでも「2」を開いた分はカウントする（1ゲーム中の累計）
+  if (cards[cardIndex] === 2 || cards[cardIndex] === '2'){
+    const newCount = (state.roundChipsFrontCount || 0) + 1;
+    state.roundChipsFrontCount = newCount;
+    updates[`rooms/${state.roomCode}/roundChipsFrontCount`] = newCount;
+  }
 
   await update(ref(db), updates);
 }
@@ -1910,24 +2233,59 @@ btnKickYes.addEventListener('click', async (e) => {
   }
 
   const seatIndex = pendingSeatIndexToSteal;
-  const roomRef = ref(db, `rooms/${state.roomCode}`);
+  const kickedId  = pendingSeatPlayerIdToSteal;   // 追い出されるプレイヤーID
+  const newId     = state.userId;                 // 席を奪取する自分
+  const roomBase  = `rooms/${state.roomCode}`;
 
-  // まずルーム情報を取得（今のホストが誰かを見る）
-  const roomSnap = await get(roomRef);
-  const roomData = roomSnap.val() || {};
+  // ルーム情報 / 手札 / 正体 / Sカード の現在値を取得
+  const [roomSnap, handsSnap, rolesSnap, sOwnerSnap] = await Promise.all([
+    get(ref(db, roomBase)),
+    get(ref(db, `${roomBase}/hands`)),
+    get(ref(db, `${roomBase}/roles`)),
+    get(ref(db, `${roomBase}/sOwner`))
+  ]);
 
-  // 既存プレイヤーを上書きして、自分として着席
-  const tRef = ref(db, `rooms/${state.roomCode}/tables/${seatIndex}`);
-  await set(tRef, {
-    playerId: state.userId,
+  const roomData  = roomSnap.val()  || {};
+  const hands     = handsSnap.val() || {};
+  const roles     = rolesSnap.val() || {};
+  const sOwnerVal = sOwnerSnap.val();
+
+  const updates = {};
+
+  // ① tables: 席の持ち主を書き換える（プレイヤー名も自分に）
+  updates[`${roomBase}/tables/${seatIndex}`] = {
+    playerId: newId,
     playerName: state.userName || '名無し'
-  });
+  };
 
-  // もし「追い出された人」がホストだったら、ホスト権を自分に移譲
-  if (roomData.hostId && pendingSeatPlayerIdToSteal && roomData.hostId === pendingSeatPlayerIdToSteal) {
-    await update(roomRef, { hostId: state.userId });
+  // ② 手札を引き継ぐ（その席のプレイヤーが持っていた手札 → 自分へ）
+  if (kickedId && hands[kickedId]) {
+    // 奪った席の手札を自分にコピー
+    updates[`${roomBase}/hands/${newId}`] = hands[kickedId];
+    // 元の持ち主の手札は消す
+    updates[`${roomBase}/hands/${kickedId}`] = null;
   }
 
+  // ③ 正体カードを引き継ぐ
+  if (kickedId && roles[kickedId]) {
+    updates[`${roomBase}/roles/${newId}`] = roles[kickedId];
+    updates[`${roomBase}/roles/${kickedId}`] = null;
+  }
+
+  // ④ Sカードを引き継ぐ（その席のプレイヤーが S を持っていた場合）
+  if (kickedId && sOwnerVal === kickedId) {
+    updates[`${roomBase}/sOwner`] = newId;
+  }
+
+  // ⑤ 追い出された人がホストだった場合、ホスト権も自分へ移譲
+  if (kickedId && roomData.hostId === kickedId) {
+    updates[`${roomBase}/hostId`] = newId;
+  }
+
+  // ★ まとめて更新
+  await update(ref(db), updates);
+
+  // ローカル状態更新
   state.seatedTable = seatIndex;
 
   kickDialog.classList.add('hidden');
@@ -1935,6 +2293,7 @@ btnKickYes.addEventListener('click', async (e) => {
   pendingPlayerNameToSteal = null;
   pendingSeatPlayerIdToSteal = null;
 
+  // 席選択ポップも閉じる
   seatPop.classList.add('hidden');
 });
 
@@ -2130,26 +2489,106 @@ btnStartPopClose.addEventListener('click', () => {
   startPop.classList.add('hidden');
 });
 
+/* ★ テーブルのカード情報をリセットして、人数選択ポップに戻す */
+btnTableReset.addEventListener('click', async () => {
+  if (!state.isHost || !state.roomCode) return;
+
+
+  isCollectAnimating = false;
+  handsDirtyWhileAnimating = false;
+
+  // ★ 回収関連フラグ・タイマーもリセット
+  stopRoundCollectForSuccess = false;
+  if (roundCollectTimerId){
+    clearTimeout(roundCollectTimerId);
+    roundCollectTimerId = null;
+  }
+ stopRoundCollectForBoom = false; 
+  state.hands = {};
+  state.roles = {};
+  state.sOwner = null;
+  state.centerDeckCards = [];
+  state.centerStackLevel = 0;
+  state.round = 0;
+  state.fullOpenMode = false;
+  state.seatedTable = null;   // ホストも一度席から外す
+  latestPlayers = [];
+  state.roundChipsFrontCount = 0;  // 丸チップ枚数リセット
+  lastAllChipsFront = false;       // アニメ用フラグもリセット
+  // 表示もクリア
+  myHandEl.innerHTML = '';
+  myRoleArea.innerHTML = '';
+  myRoleArea.classList.add('hidden');
+  playerCircle.innerHTML = '';
+
+  if (deckRow){
+    deckRow.innerHTML = '';
+    deckRow.style.display = 'none';
+  }
+  if (roundChipRow){
+    roundChipRow.innerHTML = '';
+    roundChipRow.style.display = 'none';
+  }
+
+  // ★ Firebase 側もリセット
+  const updates = {};
+  // カード系
+  updates[`rooms/${state.roomCode}/hands`] = null;
+  updates[`rooms/${state.roomCode}/roles`] = null;
+  updates[`rooms/${state.roomCode}/sOwner`] = null;
+  updates[`rooms/${state.roomCode}/centerDeck`] = null;
+  updates[`rooms/${state.roomCode}/centerStackLevel`] = 0;
+  updates[`rooms/${state.roomCode}/round`] = 0;
+  updates[`rooms/${state.roomCode}/fullOpenMode`] = false;
+    updates[`rooms/${state.roomCode}/roundChipsFrontCount`] = 0;
+// テーブル・人数設定
+  updates[`rooms/${state.roomCode}/tables`] = null;
+  updates[`rooms/${state.roomCode}/maxPlayers`] = null;
+
+  await update(ref(db), updates);
+
+  // スタートポップを閉じて、人数選択ポップへ
+  startPop.classList.add('hidden');
+
+  // ★ ホストは再び「人数を選択」モードになる
+  await renderSeatTabs();
+  seatPop.classList.remove('hidden');
+});
+
+
 /* ★ スタートボタン：正体＋S＋全員にカード5枚ずつ配布 */
 btnGameStart.addEventListener('click', async () => {
   if (!state.isHost) return;
 
   // 新しいゲーム開始としてアニメ状態とラウンドをリセット
   isCollectAnimating = false; // ★ 念のためアニメ中フラグもクリア
+
+  // ★ 回収停止フラグ＆タイマーも初期化
+  stopRoundCollectForSuccess = false;
+  if (roundCollectTimerId){
+    clearTimeout(roundCollectTimerId);
+    roundCollectTimerId = null;
+  }
+  stopRoundCollectForBoom = false;  
   state.round = 1;
 
   // ★ 山札・重なりレベルもリセット
   state.centerStackLevel = 0;
-  state.centerDeckCards = [];
+  state.centerDeckCardsf = [];
 
+  // ★ 全カードOK仕様（fullOpenMode）もリセット
+  state.fullOpenMode = false;
+  state.roundChipsFrontCount = 0; // ← 追加
+  lastAllChipsFront = false;      // ← 追加
   await dealInitialHands();
 
-  // ★ DB にラウンド番号＋山札リセットを書き込む（全員に共有）
+  // ★ DB にラウンド番号＋山札リセット＋fullOpenModeリセットを書き込む（全員に共有）
   await update(ref(db, `rooms/${state.roomCode}`), {
-   round: state.round,
+    round: state.round,
     centerDeck: [],
     centerStackLevel: 0,
-    fullOpenMode: false
+    fullOpenMode: false,
+ roundChipsFrontCount: 0  
   });
 
   startPop.classList.add('hidden');
