@@ -1,0 +1,2161 @@
+
+<!DOCTYPE html>    
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>テンプレ</title>
+<style>
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fff;color:#111;}
+header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #eee;}
+h1{margin:0;font-size:18px;}
+.small{font-size:12px;opacity:.75;}
+.join-box{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:12px;}
+.join-box input{padding:8px;border:1px solid #ddd;border-radius:6px;font-size:16px;}
+.btn{padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#f8f8f8;cursor:pointer;}
+.btn.primary{background:#111;color:#fff;border-color:#111;}
+.btn.ghost{background:transparent;}
+.hidden{display:none;}
+#lobby{padding:20px;border-top:1px solid #eee;}
+.copy-btn.copied, .btn.ghost.copied{background:#16a34a;color:#fff;border-color:#16a34a;}
+.seat-pop{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);background:orange;border:1px solid #eee;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12);padding:10px;z-index:220;display:flex;flex-direction:column;gap:10px;min-width:280px;}
+.seat-pop.hidden{display:none;}
+.seat-pop .row{display:flex;gap:8px;align-items:center;}
+.seat-pop label{width:84px;font-size:13px;}
+.seat-pop .tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.tab{padding:6px 10px;border:1px solid #ddd;border-radius:999px;cursor:pointer;user-select:none;position:relative;}
+.tab.disabled::after{content:'✕';position:absolute;inset:0;display:grid;place-items:center;font-size:18px;font-weight:700;color:#b91c1c;pointer-events:none;}
+.tab.active{background:#111;color:#fff;border-color:#111;}
+
+/* ★ プレイヤー円配置用 */
+.player-circle{
+  position:relative;
+  width:260px;
+  height:260px;
+  margin:20px auto 0;
+  border-radius:50%;
+  border:1px dashed #ddd;
+  box-sizing:border-box;
+}
+.player-circle::before{
+  content:''; /* テキストは非表示に */
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-size:11px;
+  opacity:.45;
+  pointer-events:none;
+}
+.player-tag{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  padding:4px 8px;
+  border-radius:999px;
+  background:#f8f8f8;
+  border:1px solid #ddd;
+  font-size:12px;
+  white-space:nowrap;
+}
+.player-tag.me{
+  background:#111;
+  color:#fff;
+  border-color:#111;
+}
+
+/* ★ ネームタグ内レイアウト */
+.player-tag-main{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+/* ② Sカード所持者用：ネームタグの「上」に小さく表示 */
+.player-tag-s-indicator{
+  position:absolute;
+  left:50%;
+  bottom:10%;
+  transform:translate(-50%,-4px);
+  width:50px;
+  height:50px;
+  border-radius:50%;
+  border:none; /* ★ 枠をなくす */
+  background-color:transparent; /* ★ 背景を透明に */
+  background-image:url('nipper.png'); /* 画像だけ表示 */
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:60%;
+  box-shadow:none; /* ★ カードっぽさが出る影も消す */
+  overflow:hidden;
+}
+
+
+/* 他プレイヤーのミニカード（ネームタグの下に横並び） */
+.player-tag .mini-hand{
+  position:absolute;
+  left:50%;
+  top:100%;
+  transform:translate(-50%,4px);
+  display:flex;
+  gap:2px;
+}
+
+.player-tag .mini-card{
+  width:20px;
+  height:30px;
+  border-radius:4px;
+  border:1px solid #bbb;
+  background-color:#fff;
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+  transform:translateY(0);
+}
+
+/* 裏向き（他プレイヤーの非公開カード） */
+.player-tag .mini-card.is-back{
+  border-color:#bbb;
+  /* 画像自体は JS の setCardBackImage で貼る */
+}
+
+/* 表を向いたカードは10pxだけ下に下がる＆枠を強調 */
+.player-tag .mini-card.is-open{
+  border-color:#555;
+  transform:translateY(10px);
+}
+
+
+/* 自分の手札表示（大きめ横並び） */
+.my-hand-wrapper{
+  margin-top:16px;
+  text-align:center;
+}
+.my-hand-title{
+  font-size:12px;
+  opacity:.7;
+}
+.my-hand{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin-top:6px;
+  min-height:100px;
+}
+.my-card{
+  width:60px;
+  height:90px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  background-color:#fff;          /* 予備の色 */
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+
+/* ③ 自分の手札の公開／非公開の濃淡 */
+.my-card.is-open{
+  opacity:1;
+  border-color:#555;
+  box-shadow:0 4px 12px rgba(0,0,0,.25);
+}
+.my-card.is-closed{
+  opacity:.45;
+}
+
+/* ① 5枚の手札の下に1枚だけ正体カード＋④Sカードを表示 */
+.my-role-area{
+  margin-top:8px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  min-height:72px;
+}
+.my-role-card{
+  width:48px;
+  height:72px;
+  border-radius:3px;              /* ★ 角丸を低く（6px → 3px） */
+  border:1px solid #000;          /* ★ 黒い枠線を追加 */
+  box-shadow:0 3px 8px rgba(0,0,0,.2);
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+
+
+/* 〇側：policerole.png を貼る */
+.my-role-card.good{
+  background-image:url('policerole.png');
+}
+
+/* ✕側：bombrole.png を貼る */
+.my-role-card.bad{
+  background-image:url('bombrole.png');
+}
+
+
+.my-s-card{
+  width:65px;
+  height:55px;
+  border-radius:0;            /* ★ カード感をなくすなら 0 に */
+  border:none;                /* ★ 枠なし */
+  background-color:transparent; 
+  background-image:url('nipper.png'); /* 画像のみ */
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:80%;
+  box-shadow:none;            /* ★ 影も消して「ただの画像」に */
+}
+
+
+/* ★ 追い出し確認ダイアログ */
+.dialog-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:300;
+}
+.dialog-backdrop.hidden{
+  display:none;
+}
+.dialog-box{
+  background:#fff;
+  border-radius:12px;
+  padding:16px 18px;
+  box-shadow:0 18px 40px rgba(0,0,0,.35);
+  max-width:320px;
+  width:calc(100% - 40px);
+}
+.dialog-box p{
+  margin:0 0 12px;
+  font-size:14px;
+  line-height:1.6;
+}
+.dialog-buttons{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+/* ★ ホスト用 設定ボタン（右下固定） */
+.host-settings-btn{
+  position:fixed;
+  right:16px;
+  bottom:16px;
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  border:1px solid #ddd;
+  background:#fff;
+  box-shadow:0 8px 20px rgba(0,0,0,.18);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  font-size:22px;
+  cursor:pointer;
+  z-index:230;
+}
+.host-settings-btn.visible{
+  display:flex;
+}
+
+/* ★ スタートポップ（右下） */
+.start-pop{
+  position:fixed;
+  right:16px;
+  bottom:72px; /* ⚙の少し上 */
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:12px;
+  box-shadow:0 12px 28px rgba(0,0,0,.16);
+  padding:10px 12px;
+  z-index:240;
+  min-width:240px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.start-pop.hidden{
+  display:none;
+}
+.start-pop-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+}
+.start-pop-title{
+  font-size:14px;
+  font-weight:600;
+}
+.start-pop-main{
+  font-size:13px;
+  line-height:1.5;
+}
+.start-pop-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:4px;
+}
+
+/* ★ ラウンド開始ポップ（画面中央を通って左→右へ流れる） */
+.round-banner{
+  position:fixed;
+  top:50%;
+  left:50%;
+  /* 初期位置は画面の左外側＋縦中央 */
+  transform:translate(-150%, -50%);
+  padding:8px 20px;
+  background:#1f2937; /* 紺っぽい色 */
+  color:#fff;
+  border-radius:999px;
+  font-size:14px;
+  font-weight:700;
+  box-shadow:0 12px 30px rgba(0,0,0,.25);
+  z-index:260;
+  white-space:nowrap;
+  pointer-events:none;
+  opacity:0;
+}
+
+/* アニメ中だけ付くクラス */
+.round-banner.show{
+  animation: roundSlide 1.8s cubic-bezier(.22,.84,.44,1) forwards;
+}
+
+@keyframes roundSlide{
+  0%{
+    /* 画面左外側にいる状態（縦は中央） */
+    transform:translate(-150%, -50%);
+    opacity:0;
+  }
+  10%{
+    opacity:1;
+  }
+  50%{
+    /* 画面ど真ん中を通過 */
+    transform:translate(-50%, -50%);
+    opacity:1;
+  }
+  100%{
+    /* 画面右外側へ抜けていく */
+    transform:translate(150%, -50%);
+    opacity:0;
+  }
+}
+
+/* 詳細情報消す用 */
+.player-circle{
+  border:none; /* ← 追加 */
+}
+.my-hand-title{
+  display:none; /* ← 非表示にする */
+}
+
+#roomInfoLobby,
+#lobby h2,
+#lobby p {
+  display: none;
+}
+/* ロビーが表示された時だけ中央配置する */
+#lobby.entered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 60px);
+}
+
+/* ★ 公開カードを中央に集めるアニメーション用レイヤー */
+.round-collect-layer{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:255;
+}
+
+/* ★ 飛んでくるカード用 */
+.round-collect-card{
+  position:absolute;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+  transition:
+    transform 1.0s cubic-bezier(.22,.84,.44,1),
+    opacity .4s ease .6s;
+  opacity:1;
+}
+/* ★ 中央の山札（回収後に1つだけ表示） */
+.center-deck{
+  position:absolute;          /* 円の中の絶対位置 */
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%); /* 円のど真ん中 */
+  display:none;               /* 山札がない間は非表示 */
+  pointer-events:none;
+}
+
+.center-deck-card{
+  position:absolute;
+  width:20px;
+  height:30px;
+  border-radius:4px;
+  border:1px solid #bbb;
+  background-color:#fff;
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+
+/* 下のカード：裏面だけ見せる（画像は JS 側で green.jpg を貼る） */
+.center-deck-card.is-back{
+  border-color:#aaa;
+}
+
+/* 一番上のカード：表向き（画像は JS で1〜3を貼る） */
+.center-deck-card.is-top{
+  border-color:#555;
+}
+
+
+/* ★ 中央の人数分丸チップ（捨て札カードの少し上） */
+.round-chip-row{
+  position:absolute;
+  left:50%;
+  top:calc(50% - 75px);  /* 中央山札の少し上あたり */
+  transform:translateX(-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  pointer-events:none;
+  z-index:256;
+}
+.round-chip-row-inner{
+  display:flex;
+  gap:4px;
+}
+.round-chip{
+ width:24px;   /* ★ 18px → 27px に拡大（1.5倍） */
+  height:24px;  
+  border-radius:50%;
+  /* ★ 輪郭削除 → border消す */
+  border:none;
+  box-shadow:0 2px 4px rgba(0,0,0,.25);
+  overflow:hidden;
+}
+
+/* 裏：failtip.png を1.5倍で表示 */
+.round-chip.back{
+  background:url('failtip.png') center no-repeat;
+  background-size:130%;  /* ★ 画像を1.5倍に拡大して見せる */
+}
+
+/* 表：successtip.png を1.5倍で表示 */
+.round-chip.front{
+  background:url('successtip.png') center no-repeat;
+  background-size:130%;  /* ★ 画像を1.5倍に拡大して見せる */
+}
+
+/* ▼ 自分の手札の左に出す「縮小版 正体カード」 */
+.my-role-mini-card{
+  width:40px;
+  height:60px;
+  border-radius:3px;
+  border:1px solid #000;
+  box-shadow:0 3px 8px rgba(0,0,0,.2);
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  margin-right:4px;
+}
+
+/* ▼ 他プレイヤーの mini-hand 用の正体カード（サイズは mini-card と同じで OK） */
+.player-tag .mini-role-card{
+  border-color:#000; /* 役職だけ枠を強める */
+}
+
+/* ★ 1（boomcard）の拡大＆揺れアニメ用オーバーレイ */
+.boom-one-overlay{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%) scale(0);
+  width:180px;
+  height:270px;
+  background-image:url('boomcard.png'); /* 1 のカード画像 */
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:contain;
+  z-index:270;
+  pointer-events:none;
+  opacity:0;
+}
+
+/* アニメ発火時に付くクラス */
+.boom-one-overlay.show{
+  animation: boomOnePop 2s cubic-bezier(.22,.84,.44,1) forwards;
+}
+
+@keyframes boomOnePop{
+  0%{
+    transform:translate(-50%,-50%) scale(0);
+    opacity:0;
+  }
+  20%{
+    transform:translate(-50%,-50%) scale(1.2) rotate(-8deg);
+    opacity:1;
+  }
+  40%{
+    transform:translate(-50%,-50%) scale(1.0) rotate(6deg);
+  }
+  60%{
+    transform:translate(-50%,-50%) scale(1.05) rotate(-4deg);
+  }
+  80%{
+    transform:translate(-50%,-50%) scale(1.0) rotate(3deg);
+  }
+  100%{
+    transform:translate(-50%,-50%) scale(1.0) rotate(0deg);
+    opacity:0;
+  }
+}
+
+
+
+</style>
+</head>
+<body>
+
+<header>
+  <h1>テンプレ</h1>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <div class="small" id="roomInfo"></div>
+    <button class="btn ghost" id="copyLinkBtn">リンクコピー</button>
+  </div>
+</header>
+
+<main>
+<div class="join-box" id="joinBox">
+  <input id="userName" placeholder="名前（4文字以内）" maxlength="4" />
+  <input id="roomCode" placeholder="ルームコード（未入力で自動生成）" maxlength="12" />
+  <button class="btn primary" id="btnJoin">入室</button>
+</div>
+
+<div id="lobby" class="hidden">
+  <h2>ロビー</h2>
+  <div id="roomInfoLobby" style="margin-bottom:8px;"></div>
+  <p>ここにテーブルや情報が表示されます。</p>
+
+   <!-- ★ プレイヤーのネームタグを円上に表示するエリア -->
+  <div id="playerCircle" class="player-circle"></div>
+
+  <!-- ★ 回収後の山札（画面中央に1つだけ重ねて表示） -->
+  <div id="deckRow" class="center-deck"></div>
+
+  <!-- ★ 中央の人数分丸チップ -->
+  <div id="roundChipRow" class="round-chip-row"></div>
+
+  <!-- ★ 自分の手札表示 -->
+  <div class="my-hand-wrapper">
+    <div class="my-hand-title">自分のカード</div>
+    <div id="myHand" class="my-hand"></div>
+    <!-- ① 5枚の手札の下に1枚だけの正体カード＋④Sカード -->
+    <div id="myRoleArea" class="my-role-area hidden"></div>
+  </div>
+
+</div>
+</main>
+
+<!-- 着席ポップ -->
+<div id="seatPop" class="seat-pop hidden">
+  <div class="row"><label>席を選択</label><div id="seatTabs" class="tabs"></div></div>
+  <div class="row" style="justify-content:flex-end">
+    <button class="btn small ghost" id="btnSeatCancel">観戦</button>
+  </div>
+</div>
+
+<!-- ★ 既存プレイヤー追い出し確認ポップ -->
+<div id="kickDialog" class="dialog-backdrop hidden">
+  <div class="dialog-box" id="kickDialogBox">
+    <p id="kickMessage">既存のプレイヤーを追い出して、着席しますか？</p>
+    <div class="dialog-buttons">
+      <button class="btn ghost" id="btnKickNo">いいえ</button>
+      <button class="btn primary" id="btnKickYes">はい</button>
+    </div>
+  </div>
+</div>
+
+<!-- ★ ホスト専用 設定ボタン（⚙） -->
+<button id="hostSettingsBtn" class="host-settings-btn" title="設定">⚙</button>
+
+<!-- ★ スタートポップ（ホスト専用パネル） -->
+<div id="startPop" class="start-pop hidden">
+  <div class="start-pop-header">
+    <div class="start-pop-title">ゲームスタート</div>
+    <button id="btnStartPopClose" class="btn ghost" style="padding:2px 6px;font-size:12px;">×</button>
+  </div>
+  <div class="start-pop-main">
+    準備ができたら「スタート」を押してください。<br>
+    押すと全プレイヤーに正体カードとSカードが配られ、カードが5枚ずつ配られます。
+  </div>
+  <div class="start-pop-actions">
+    <button id="btnGameStart" class="btn primary">スタート</button>
+  </div>
+</div>
+
+<!-- ★ ラウンド開始ポップ -->
+<div id="roundBanner" class="round-banner">1ラウンド</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, onDisconnect, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDUP1foVQnitM45do_UtYLkcc9gvgQC-xw",
+  authDomain: "timebomb-3b0c7.firebaseapp.com",
+  databaseURL: "https://timebomb-3b0c7-default-rtdb.firebaseio.com", // ★推奨：Realtime DB を使うなら追加
+  projectId: "timebomb-3b0c7",
+  storageBucket: "timebomb-3b0c7.firebasestorage.app",
+  messagingSenderId: "532935786630",
+  appId: "1:532935786630:web:ef1f97c862bfaad67d1107",
+  measurementId: "G-K8NRR8K64Y"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+// ★ userId をタブ単位で固定（タブごとに別ID）
+const savedUserId = sessionStorage.getItem('bbUserId') || crypto.randomUUID();
+sessionStorage.setItem('bbUserId', savedUserId);
+
+const state = {
+  userId: savedUserId,
+  userName: null,
+  roomCode: null,
+  seatedTable: null, // 1〜maxPlayers を使用
+  isHost: false,
+  hands: {},         // { playerId: { cards:[…], open:[…] } }
+  roles: {},         // { playerId: { role:'O'|'X' } }
+  sOwner: null,      // Sカードの現在の持ち主 playerId
+  round: 0,          // ★ 現在のラウンド番号（0=未開始）
+  centerDeckCards: [],   // ★ 中央山札の中身（購読で保持）
+  centerStackLevel: 0,   // ★ 回収アニメが起きた回数（重なりレベル）
+  fullOpenMode: false    // ★ 1 が公開されたあと「全員が全員の手札を公開できる」モード
+};
+
+
+
+// ★ アニメーション中の二重実行防止
+let isCollectAnimating = false;
+let handsDirtyWhileAnimating = false;
+
+const joinBox = document.getElementById('joinBox');
+const inputName = document.getElementById('userName');
+const inputCode = document.getElementById('roomCode');
+const btnJoin = document.getElementById('btnJoin');
+const lobby = document.getElementById('lobby');
+const roomInfo = document.getElementById('roomInfo');
+const roomInfoLobby = document.getElementById('roomInfoLobby');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+
+const seatPop = document.getElementById('seatPop');
+const seatTabs = document.getElementById('seatTabs');
+const btnSeatCancel = document.getElementById('btnSeatCancel');
+const seatLabel = seatPop.querySelector('label');
+
+const playerCircle = document.getElementById('playerCircle'); // 円表示用
+const myHandEl = document.getElementById('myHand');           // 自分の手札
+const myRoleArea = document.getElementById('myRoleArea');     // ① 正体カード＋④Sカードエリア
+
+// ★ 中央エリア（山札5枚）
+const deckRow = document.getElementById('deckRow');
+// ★ 丸チップのコンテナ
+const roundChipRow = document.getElementById('roundChipRow');
+
+// ★ 追い出しポップ関連
+const kickDialog = document.getElementById('kickDialog');
+const kickDialogBox = document.getElementById('kickDialogBox');
+const kickMessage = document.getElementById('kickMessage');
+const btnKickYes = document.getElementById('btnKickYes');
+const btnKickNo = document.getElementById('btnKickNo');
+
+// ★ ホスト設定ボタン
+const hostSettingsBtn = document.getElementById('hostSettingsBtn');
+
+// ★ スタートポップ
+const startPop = document.getElementById('startPop');
+const btnStartPopClose = document.getElementById('btnStartPopClose');
+const btnGameStart = document.getElementById('btnGameStart');
+
+// ★ ラウンド開始ポップ
+const roundBanner = document.getElementById('roundBanner');
+
+// 「どの席を奪うか」を一時的に保持
+let pendingSeatIndexToSteal = null;
+let pendingPlayerNameToSteal = null;
+let pendingSeatPlayerIdToSteal = null; // ★ 追い出されるプレイヤーのIDも保持
+
+// ★ 席タブ描画中フラグ（二重描画防止）
+let isRenderingSeatTabs = false;
+
+// ★ 直近のプレイヤー一覧（手札更新時にも再描画に使う）
+let latestPlayers = [];
+
+// ★ 回収後の中央山札を描画する（ラウンドごとに 3・6・9… 枚重ねで表示）
+function renderCenterDeck(cards){
+  if (!deckRow) return;
+
+  deckRow.innerHTML = '';
+
+  // 現在ラウンド数：1 → 3枚重ね、2 → 6枚重ね、3 → 9枚重ね…
+  const currentRound = state.round || 0;
+  const stackCount = currentRound > 0 ? currentRound * 3 : 0;
+
+  // ラウンドが始まっていない / 山札が空なら非表示
+  if (!cards || !cards.length || stackCount === 0){
+    deckRow.style.display = 'none';
+    return;
+  }
+
+  deckRow.style.display = 'block';
+
+  const CARD_W = 16;   // mini-card と同じ
+  const CARD_H = 22;   // mini-card と同じ
+  const OFFSET = 2;    // 1枚ごとの縦ずれ量（固定）
+
+  // コンテナ自体のサイズ（幅は1枚分、高さは「重なり枚数」に合わせる）
+  deckRow.style.width  = CARD_W + 'px';
+  deckRow.style.height = (CARD_H + (stackCount - 1) * OFFSET) + 'px';
+
+  const total = cards.length;
+  const topIndex = total - 1;  // 実際の山札の一番上
+
+  for (let i = 0; i < stackCount; i++){
+    const cardEl = document.createElement('div');
+    cardEl.className = 'center-deck-card';
+
+    // 上のカードほど上側に来る（stackCount-1 - i）
+    const dx = 0;
+    const dy = (stackCount - 1 - i) * OFFSET;
+
+    cardEl.style.left = dx + 'px';
+    cardEl.style.top  = dy + 'px';
+    cardEl.style.zIndex = 10 + i;   // 一番上のカードが zIndex 最大
+
+    // 一番上の1枚だけ実際のトップカードを表向きで表示
+    if (i === stackCount - 1 && topIndex >= 0){
+      cardEl.classList.add('is-top');
+      const v = cards[topIndex];
+
+      // ★ 一番上だけ実際のカード画像
+      setCardFrontImage(cardEl, v);
+    } else {
+      // ★ 下にあるカードは裏面だけ（どの数字かは見せない）
+      cardEl.classList.add('is-back');
+      setCardBackImage(cardEl);
+    }
+
+
+    deckRow.appendChild(cardEl);
+  }
+}
+
+// ★ 「表になっている 2 の枚数」を数える
+function countOpenTwos(){
+  const hands = state.hands || {};
+  let cnt = 0;
+  Object.values(hands).forEach(hand => {
+    if (!hand || !Array.isArray(hand.cards)) return;
+    const cards = hand.cards;
+    const openArr = hand.open || [];
+    for(let i=0;i<cards.length;i++){
+      if (openArr[i] && cards[i] === 2){
+        cnt++;
+      }
+    }
+  });
+  return cnt;
+}
+
+// ★ 人数分の丸チップを配置し、2 が表の分だけ front にする
+function renderRoundChips(playerCount, faceUpCount){
+  if (!roundChipRow) return;
+
+  roundChipRow.innerHTML = '';
+
+  if (!playerCount || playerCount <= 0){
+    roundChipRow.style.display = 'none';
+    return;
+  }
+  roundChipRow.style.display = 'flex';
+
+  // 安全のため 0〜playerCount にクランプ
+  let frontLeft = Math.max(0, Math.min(faceUpCount || 0, playerCount));
+  let remaining = playerCount;
+
+  // 人数ごとのレイアウト
+  const rows = [];
+  if (playerCount <= 5){
+    rows.push(playerCount);        // 1 行
+  } else if (playerCount === 6){
+    rows.push(3,3);                // 3 + 3
+  } else if (playerCount === 7){
+    rows.push(4,3);                // 4 + 3
+  } else if (playerCount === 8){
+    rows.push(4,4);                // 4 + 4
+  } else {
+    // 9人以上になったときの保険（全部横並び）
+    rows.push(playerCount);
+  }
+
+  rows.forEach(size => {
+    const rowSize = Math.min(size, remaining);
+    if (rowSize <= 0) return;
+
+    const rowEl = document.createElement('div');
+    rowEl.className = 'round-chip-row-inner';
+
+for(let i=0;i<rowSize;i++){
+  const chip = document.createElement('div');
+  const isFront = (frontLeft > 0);
+  chip.className = 'round-chip ' + (isFront ? 'front' : 'back');
+
+  // 文字はもう使わないので何も入れない
+  chip.textContent = '';
+
+  if (isFront) frontLeft--;
+  remaining--;
+
+  rowEl.appendChild(chip);
+}
+    roundChipRow.appendChild(rowEl);
+  });
+}
+
+// ★ 最新のプレイヤー人数と「表の2の枚数」から丸チップを更新
+function updateRoundChips(){
+  if (!roundChipRow) return;
+
+  const playerCount = latestPlayers.length || 0;
+  if (!playerCount){
+    roundChipRow.innerHTML = '';
+    roundChipRow.style.display = 'none';
+    return;
+  }
+
+  const openTwoCount = countOpenTwos();
+  renderRoundChips(playerCount, openTwoCount);
+}
+
+// ランダムルームコード生成
+function generateRoomCode(length = 6){
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for(let i=0;i<length;i++) code += chars.charAt(Math.floor(Math.random()*chars.length));
+  return code;
+}
+
+// ★ 自分の席が DB に残っていれば復元（1〜maxPlayers）
+async function restoreSeatFromDB(){
+  if (!state.roomCode) return;
+  const tablesRef = ref(db, `rooms/${state.roomCode}/tables`);
+  const snap = await get(tablesRef);
+  const data = snap.val() || {};
+  let mySeatIndex = null;
+
+  for (const [seatIndex, t] of Object.entries(data)) {
+    if (t && t.playerId === state.userId) {
+      mySeatIndex = Number(seatIndex);
+      break;
+    }
+  }
+
+  if (mySeatIndex !== null) {
+    state.seatedTable = mySeatIndex;
+  }
+}
+
+// ★ ルーム情報テキスト＆⚙の表示切り替え
+function refreshRoomLabels(){
+  if (!state.roomCode || !state.userName) return;
+  const label = state.isHost ? '（ホスト）' : '';
+  const infoText = `ルーム: ${state.roomCode}, 名前: ${state.userName}${label}`;
+  roomInfo.textContent = infoText;
+  roomInfoLobby.textContent = infoText;
+}
+
+function updateHostUI(){
+  refreshRoomLabels();
+  if (state.isHost){
+    hostSettingsBtn.classList.add('visible');
+  } else {
+    hostSettingsBtn.classList.remove('visible');
+    // ホストでなくなったらスタートポップも閉じる
+    startPop.classList.add('hidden');
+  }
+}
+
+// ★ 「◯ラウンド」ポップを左→右に流す
+function showRoundBanner(text){
+  if(!roundBanner) return;
+  roundBanner.textContent = text;
+
+  // 連続使用時にも毎回アニメをやり直すためのリセット
+  roundBanner.classList.remove('show');
+  void roundBanner.offsetWidth; // リフロー
+
+  roundBanner.classList.add('show');
+}
+
+// アニメーション終了後に .show を外しておく
+if (roundBanner){
+  roundBanner.addEventListener('animationend', () => {
+    roundBanner.classList.remove('show');
+  });
+}
+
+
+
+/* ★ 1 が出た瞬間に中央で揺れる 1 カードアニメ */
+function showBoomOneAnimation(){
+  let el = document.getElementById('boomOneOverlay');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'boomOneOverlay';
+    el.className = 'boom-one-overlay';
+    document.body.appendChild(el);
+
+    // アニメが終わったら .show を外しておく
+    el.addEventListener('animationend', () => {
+      el.classList.remove('show');
+    });
+  }
+
+  // 毎回アニメをリスタート
+  el.classList.remove('show');
+  void el.offsetWidth; // リフロー
+  el.classList.add('show');
+}
+// ★ hostId を購読して、ホスト状態を自動同期
+function subscribeHostState(){
+  if (!state.roomCode) return;
+  const hostRef = ref(db, `rooms/${state.roomCode}/hostId`);
+  onValue(hostRef, snap => {
+    const hostId = snap.val();
+    state.isHost = (hostId === state.userId);
+    updateHostUI();
+  });
+}
+
+function subscribeRound(){
+  if (!state.roomCode) return;
+  const roundRef = ref(db, `rooms/${state.roomCode}/round`);
+  onValue(roundRef, snap => {
+    const v = snap.val();
+    const newRound = (typeof v === 'number') ? v : 0;
+
+    // ★ ラウンド値が変わったタイミングでアニメフラグをリセット（保険）
+    if (newRound !== state.round){
+      isCollectAnimating = false;
+      handsDirtyWhileAnimating = false;
+    }
+
+    state.round = newRound;
+    if (state.round > 0){
+      showRoundBanner(`${state.round}ラウンド`);
+    }
+  });
+}
+
+
+// ★ どこかの手札で「1」が公開されたかチェックし、
+//    1 の拡大アニメ → 0.5秒後にホストが fullOpenMode を ON にする
+function detectAndActivateFullOpenMode(hands){
+  // すでにフル公開モードなら何もしない
+  if (state.fullOpenMode) return;
+
+  let hasOpenOne = false;
+
+  Object.values(hands || {}).forEach(hand => {
+    if (hasOpenOne) return;
+    if (!hand || !Array.isArray(hand.cards)) return;
+
+    const cards = hand.cards;
+    const openArr = hand.open || [];
+
+    for (let i = 0; i < cards.length; i++){
+      if (openArr[i] && cards[i] === 1){
+        hasOpenOne = true;
+        break;
+      }
+    }
+  });
+
+  if (!hasOpenOne) return;
+
+  // ① 全クライアントで 1 の拡大アニメを再生
+  showBoomOneAnimation();
+
+  // ② ホストだけが 0.5 秒後に fullOpenMode を立てる
+  if (state.isHost && state.roomCode){
+    setTimeout(() => {
+      // その間にすでにフル公開済みなら何もしない
+      if (state.fullOpenMode) return;
+
+      update(ref(db, `rooms/${state.roomCode}`), {
+        fullOpenMode: true
+      });
+    }, 500);
+  }
+}
+
+
+function subscribeHands(){
+  if (!state.roomCode) return;
+  const handsRef = ref(db, `rooms/${state.roomCode}/hands`);
+  onValue(handsRef, snap => {
+    const newHands = snap.val() || {};
+    state.hands = newHands;
+
+    // ★ まず「1 が公開されたか」をチェック → なっていたらフル公開モード ON
+    detectAndActivateFullOpenMode(newHands);
+
+    if (isCollectAnimating) {
+      handsDirtyWhileAnimating = true;
+    } else {
+      renderHands();
+    }
+    // ★ 公開枚数チェック → そろったら中央に集める
+    checkOpenCardsAndCollect();
+
+    // ★ 「表の2」の枚数が変わる可能性があるので丸チップ更新
+    updateRoundChips();
+  });
+}
+// ★ 「1 が公開されたあとのフル公開モード」購読
+function subscribeFullOpenMode(){
+  if (!state.roomCode) return;
+  const fullRef = ref(db, `rooms/${state.roomCode}/fullOpenMode`);
+  onValue(fullRef, snap => {
+    state.fullOpenMode = !!snap.val();
+    // モードが変わったら、自分の手札＋ミニ手札を描画し直す
+    renderHands();
+  });
+}
+
+
+// ★ カード表：数値(1,2,3)に応じて画像をセット
+function setCardFrontImage(el, value){
+  let img = '';
+  if (value === 1 || value === '1') {
+    img = 'boomcard.png';          // ★ 1 のカード
+  } else if (value === 2 || value === '2') {
+    img = 'successcard.png';       // ★ 2 のカード
+  } else if (value === 3 || value === '3') {
+    img = 'shiin.png';             // ★ 3 のカード
+  }
+
+  if (img){
+    el.style.backgroundImage = `url('${img}')`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.style.backgroundRepeat = 'no-repeat';
+  }else{
+    el.style.backgroundImage = '';
+  }
+
+  // 数字テキストは使わないので消しておく
+  el.textContent = '';
+}
+
+// ★ カード裏：緑の共通デザイン
+function setCardBackImage(el){
+  el.style.backgroundImage = `url('green.jpg')`;   // ★ 裏面画像
+  el.style.backgroundSize = 'cover';
+  el.style.backgroundPosition = 'center';
+  el.style.backgroundRepeat = 'no-repeat';
+  el.textContent = '';
+}
+
+
+function renderMyHand(){
+  myHandEl.innerHTML = '';
+  const myId = state.userId;
+  const handData = state.hands[myId];
+
+  if (!handData || !Array.isArray(handData.cards)) return;
+
+  const cards = handData.cards;
+  const openArr = (handData.open && handData.open.slice()) || new Array(cards.length).fill(false);
+
+  // ★ 自分の手札の横には正体ミニカードを表示しない（仕様変更）
+
+  cards.forEach((v, idx) => {
+    const card = document.createElement('div');
+    card.className = 'my-card';
+
+    setCardFrontImage(card, v);
+
+    if (openArr[idx]) {
+      card.classList.add('is-open');
+    } else {
+      card.classList.add('is-closed');
+    }
+
+    myHandEl.appendChild(card);
+  });
+}
+
+
+
+
+function renderMyRoleArea(){
+  if (!myRoleArea) return;
+  myRoleArea.innerHTML = '';
+
+  const myId = state.userId;
+  const roleInfo = state.roles[myId];
+
+  if (!roleInfo || !roleInfo.role) {
+    myRoleArea.classList.add('hidden');
+    return;
+  }
+
+  myRoleArea.classList.remove('hidden');
+
+  // ④ 自分がSカードを持っているときだけ、左側にSカード表示
+if (state.sOwner === myId){
+  const sCard = document.createElement('div');
+  sCard.className = 'my-s-card';
+  // ★ 文字は出さず、CSS の nipper.png だけ表示
+  myRoleArea.appendChild(sCard);
+}
+
+
+  // ① 正体カードは1枚だけ（〇→policerole.png, ✕→bombrole.png）
+  const roleCard = document.createElement('div');
+  let cls = 'my-role-card';
+
+  if (roleInfo.role === 'O'){
+    // 〇 → policerole.png
+    cls += ' good';
+  } else if (roleInfo.role === 'X'){
+    // ✕ → bombrole.png
+    cls += ' bad';
+  } else {
+    // 想定外の値だけ「?」表示（画像はなし）
+    roleCard.textContent = '?';
+  }
+
+  roleCard.className = cls;
+  myRoleArea.appendChild(roleCard);
+}
+
+
+// ★ 手札の更新時に呼ぶ：自分＋他プレイヤー（円）を再描画
+function renderHands(){
+  renderMyHand();
+  if (latestPlayers.length){
+    renderPlayerCircle(latestPlayers);
+  }
+}
+
+/* ★★ ここが今回の修正ポイント（ホスト以外もアニメ再生） ★★ */
+function checkOpenCardsAndCollect(){
+  // ① アニメの判定は全員で行う
+  //    （実際に DB を更新するのはアニメ関数内で state.isHost のときだけ）
+  if (isCollectAnimating) return;
+
+  // ② プレイヤー人数は「実際に手札を持っている人」で数える
+  const hands = state.hands || {};
+  const playerIds = Object.keys(hands).filter(pid => {
+    const h = hands[pid];
+    return h && Array.isArray(h.cards) && h.cards.length > 0;
+  });
+
+  const playerCount = playerIds.length;
+  if (!playerCount) return;
+
+  // ③ 公開枚数をカウント
+  let openCount = 0;
+  playerIds.forEach(pid => {
+    const hand = hands[pid];
+    const openArr = hand.open || [];
+    openArr.forEach(f => {
+      if (f) openCount++;
+    });
+  });
+
+  // 「プレイヤー人数以上公開されたら」発火させる
+  if (openCount >= playerCount && playerCount > 0){
+    setTimeout(() => {
+      animateOpenCardsToCenter();
+    }, 1000);
+  }
+}
+
+
+// ★ 公開中カードを「クローン」で中央へ飛ばすアニメーション
+//   - .my-card / .mini-card の見た目をコピーして round-collect-layer 上に重ねる
+//   - 元のカードはその場でフェードアウト → 非表示
+//   - 見た目上は「そのカードが中央に集まる」動きになる
+function animateOpenCardsToCenter(){
+  // 2重起動防止（念のため）
+  if (isCollectAnimating) return;
+  handsDirtyWhileAnimating = false;
+  isCollectAnimating = true;
+
+  // 以前のラウンドで使ったレイヤーがあれば片付ける（保険）
+  const oldLayer = document.getElementById('roundCollectLayer');
+  if (oldLayer && oldLayer.parentNode){
+    oldLayer.parentNode.removeChild(oldLayer);
+  }
+
+  // 公開中の元カード（自分の大きいカード＋他人のミニカード）を拾う
+  const srcCards = document.querySelectorAll(
+    '.my-card.is-open, .mini-card.is-open'
+  );
+
+  if (!srcCards.length){
+    return;
+  }
+
+
+  // 飛ばすカードを載せる専用レイヤーを作成
+  const layer = document.createElement('div');
+  layer.id = 'roundCollectLayer';
+  layer.className = 'round-collect-layer';
+  document.body.appendChild(layer);
+
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+
+  srcCards.forEach((src, idx) => {
+    const rect = src.getBoundingClientRect();
+
+    // 元カードと同じ見た目のクローンを作成
+    const clone = src.cloneNode(true);
+    clone.classList.add('round-collect-card');
+
+    // 画面上の現在位置にそのまま固定配置
+    clone.style.position = 'fixed';
+    clone.style.left = rect.left + 'px';
+    clone.style.top  = rect.top  + 'px';
+    clone.style.width  = rect.width  + 'px';
+    clone.style.height = rect.height + 'px';
+    clone.style.margin = '0';
+    clone.style.transform = 'translate(0,0)';
+
+    layer.appendChild(clone);
+
+    // 元のカードはその場でフェードアウトさせておく
+    src.style.opacity = '0';
+
+    // 少しだけ横にずらして重なり感を出す
+    const offset = (idx - (srcCards.length - 1) / 2) * 4;
+
+    // 画面中央までの差分（クローンの中心から見た移動量）
+    const dx = centerX - (rect.left + rect.width  / 2) + offset;
+    const dy = centerY - (rect.top  + rect.height / 2);
+
+    // 次フレームで中央へ向かって移動開始
+    requestAnimationFrame(() => {
+      clone.style.transform = `translate(${dx}px, ${dy}px)`;
+
+      // 少し遅れてクローンをフェードアウト
+      setTimeout(() => {
+        clone.style.opacity = '0';
+      }, 700); // transform 1.0s に合わせて少し後ろで薄くする
+    });
+  });
+
+  // ① 少し待ってから「元のカード」を消す
+  setTimeout(() => {
+    const currentCards = document.querySelectorAll(
+      '.my-card.is-open, .mini-card.is-open'
+    );
+    currentCards.forEach(card => {
+      card.style.display = 'none';   // 元カードを非表示
+      card.style.opacity = '';       // 念のためリセット
+      card.style.transform = '';     // 念のためリセット
+    });
+  }, 250); // クローンが動き始めた直後に消す
+
+  // ② クローン用レイヤーの片付け（アニメ完了後）＋公開カードを centerDeck へ
+  setTimeout(async () => {
+    const layerNow = document.getElementById('roundCollectLayer');
+    if (layerNow && layerNow.parentNode){
+      layerNow.parentNode.removeChild(layerNow);
+    }
+
+    // ★ アニメ終了後：公開されていたカードを手札データから削除
+    //    ＋ そのカードを中央の山札(centerDeck)として集約
+    //    ホストだけが DB を更新する
+    if (state.roomCode && state.isHost){
+      const hands = state.hands || {};
+      const newHands = {};
+      const collectedCards = [];  // ← 山札にするカード
+
+      Object.entries(hands).forEach(([pid, hand]) => {
+        if (!hand || !Array.isArray(hand.cards)) {
+          // 想定外データはそのままコピー
+          newHands[pid] = hand;
+          return;
+        }
+        const cards   = hand.cards;
+        const openArr = hand.open || [];
+
+        const keptCards = [];
+        const keptOpen  = [];
+
+        for (let i = 0; i < cards.length; i++){
+          if (!openArr[i]) {
+            // ★ 未公開カード：手札に残す（公開フラグはリセット）
+            keptCards.push(cards[i]);
+            keptOpen.push(false);
+          } else {
+            // ★ 公開されていたカード：中央の山札へ回収
+            collectedCards.push(cards[i]);
+          }
+        }
+
+        newHands[pid] = { cards: keptCards, open: keptOpen };
+      });
+
+      // hands と centerDeck をまとめて上書き
+      // ★ 今回の回収で山札の重なりレベルを 1 増やす
+      const newLevel = (state.centerStackLevel || 0) + 1;
+      state.centerStackLevel = newLevel;
+
+      // hands と centerDeck と centerStackLevel をまとめて上書き
+      await update(ref(db), {
+        [`rooms/${state.roomCode}/hands`]: newHands,
+        [`rooms/${state.roomCode}/centerDeck`]: collectedCards,
+        [`rooms/${state.roomCode}/centerStackLevel`]: newLevel
+      });
+    }
+
+    // ★ さらに1秒待ってから、未公開カードも中央に集めて再配布
+    setTimeout(() => {
+      animateAllRemainingCardsToCenterAndRedistribute();
+    }, 1000);
+  }, 1200); // transform 1.0s ＋ opacity 0.4s を見越して少し余裕
+}
+
+/* ★ 未公開カードを中央に集めてから均等に配り直すアニメーション */
+function animateAllRemainingCardsToCenterAndRedistribute(){
+  // ★ ここでは isCollectAnimating で return しない
+  //    （animateOpenCardsToCenter から必ず1回だけ呼ばれる前提）
+
+  // 今、場に見えているカード（＝未公開カードなど）を全部対象にする
+  const srcCards = document.querySelectorAll('.my-card, .mini-card');
+  if (!srcCards.length){
+    // ★ もう場にカードが見えていない＝アニメ終了扱いとしてフラグ解除
+    isCollectAnimating = false;
+    if (handsDirtyWhileAnimating){
+      handsDirtyWhileAnimating = false;
+      renderHands();
+    }
+    return;
+  }
+
+  // ここから本当の「全カード回収」アニメ開始
+  isCollectAnimating = true;
+
+  const oldLayer = document.getElementById('roundCollectLayer');
+  if (oldLayer && oldLayer.parentNode){
+    oldLayer.parentNode.removeChild(oldLayer);
+  }
+
+  const layer = document.createElement('div');
+  layer.id = 'roundCollectLayer';
+  layer.className = 'round-collect-layer';
+  document.body.appendChild(layer);
+
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+
+  srcCards.forEach((src, idx) => {
+    const rect = src.getBoundingClientRect();
+
+    const clone = src.cloneNode(true);
+    clone.classList.add('round-collect-card');
+    clone.style.position = 'fixed';
+    clone.style.left = rect.left + 'px';
+    clone.style.top  = rect.top  + 'px';
+    clone.style.width  = rect.width  + 'px';
+    clone.style.height = rect.height + 'px';
+    clone.style.margin = '0';
+    clone.style.transform = 'translate(0,0)';
+
+    layer.appendChild(clone);
+
+    src.style.opacity = '0';
+
+    const offset = (idx - (srcCards.length - 1) / 2) * 2;
+    const dx = centerX - (rect.left + rect.width  / 2) + offset;
+    const dy = centerY - (rect.top  + rect.height / 2);
+
+    requestAnimationFrame(() => {
+      clone.style.transform = `translate(${dx}px, ${dy}px)`;
+      setTimeout(() => {
+        clone.style.opacity = '0';
+      }, 700);
+    });
+  });
+
+  setTimeout(() => {
+    const current = document.querySelectorAll('.my-card, .mini-card');
+    current.forEach(card => {
+      card.style.display = 'none';
+      card.style.opacity = '';
+      card.style.transform = '';
+    });
+  }, 250);
+
+  setTimeout(async () => {
+    const layerNow = document.getElementById('roundCollectLayer');
+    if (layerNow && layerNow.parentNode){
+      layerNow.parentNode.removeChild(layerNow);
+    }
+
+    if (state.roomCode && state.isHost){
+      await redistributeRemainingCards();
+
+      const nextRound = (state.round || 0) + 1;
+      state.round = nextRound;
+      await update(ref(db, `rooms/${state.roomCode}`), {
+        round: nextRound
+      });
+    }
+
+    // ★ ここで必ずフラグを戻す（全クライアント共通）
+    isCollectAnimating = false;
+    if (handsDirtyWhileAnimating) {
+      handsDirtyWhileAnimating = false;
+      renderHands();
+    }
+  }, 1200);
+}
+
+
+
+
+// ★ 正体カード＆Sカード＆中央山札の購読
+function subscribeCenter(){
+  if (!state.roomCode) return;
+
+  // 正体カード
+  const rolesRef = ref(db, `rooms/${state.roomCode}/roles`);
+  onValue(rolesRef, snap => {
+    state.roles = snap.val() || {};
+    // 中央の roleRow には出さず、自分の足元だけ更新
+    renderMyRoleArea();
+  });
+
+  // Sカードの持ち主
+  const sOwnerRef = ref(db, `rooms/${state.roomCode}/sOwner`);
+  onValue(sOwnerRef, snap => {
+    state.sOwner = snap.val() || null;
+    // ④ Sカード表示位置の更新
+    renderMyRoleArea();
+    // S権限によるミニカードのクリック可否を更新
+    if (latestPlayers.length){
+      renderPlayerCircle(latestPlayers);
+    }
+  });
+
+  // ★ 回収後の中央山札（centerDeck）
+  const centerDeckRef = ref(db, `rooms/${state.roomCode}/centerDeck`);
+  onValue(centerDeckRef, snap => {
+    const deckCards = snap.val() || [];
+    state.centerDeckCards = deckCards;          // ★ 状態に保持
+    renderCenterDeck(deckCards);               // 現在のレベルで描画
+  });
+
+  // ★ 山札の重なりレベル（回収アニメ回数）
+  const stackLevelRef = ref(db, `rooms/${state.roomCode}/centerStackLevel`);
+  onValue(stackLevelRef, snap => {
+    const lv = snap.val();
+    state.centerStackLevel = typeof lv === 'number' ? lv : 0;
+    // レベルが変わったら、最新の centerDeckCards で描画し直す
+    renderCenterDeck(state.centerDeckCards || []);
+  });
+}
+
+// ページ読み込み時にURLからroomパラメータがあれば入力欄にセット
+const urlParams = new URLSearchParams(window.location.search);
+const roomFromUrl = urlParams.get('room');
+if(roomFromUrl){
+  inputCode.value = roomFromUrl;
+}
+
+// 入室処理
+btnJoin.addEventListener('click', async () => {
+  state.userName = inputName.value || '名無し';
+  state.roomCode = inputCode.value.trim() || generateRoomCode();
+
+  // ユーザー登録（users はログ用。席は別テーブル）
+  await set(ref(db, `rooms/${state.roomCode}/users/${state.userId}`), {
+    name: state.userName,
+    joinedAt: Date.now()
+  });
+
+  const roomRef = ref(db, `rooms/${state.roomCode}`);
+  const roomSnap = await get(roomRef);
+  const roomData = roomSnap.val();
+
+  // ホスト判定
+  if(!roomData || !roomData.hostId){
+    await update(roomRef, {
+      hostId: state.userId
+    });
+    state.isHost = true;
+  } else {
+    state.isHost = (roomData.hostId === state.userId);
+  }
+
+  // 一旦ローカル状態でUI更新
+  updateHostUI();
+
+  joinBox.classList.add('hidden');
+  lobby.classList.remove('hidden');
+  lobby.classList.add('entered'); 
+
+  // ★ 再接続時などに、既存の自分の席があれば復元
+  await restoreSeatFromDB();
+
+  // 席がない場合だけ、席選択ポップを出す
+  if (state.seatedTable === null) {
+    await renderSeatTabs();
+    seatPop.classList.remove('hidden');
+  } else {
+    seatPop.classList.add('hidden');
+  }
+
+  // ★ 着席者一覧の購読開始（円上に表示）
+  subscribePlayers();
+
+  // ★ ホスト情報の購読開始（ホスト移譲に追従）
+  subscribeHostState();
+
+  // ★ ラウンド番号の購読開始
+  subscribeRound();
+
+  // ★ 手札の購読開始
+  subscribeHands();
+
+  // ★ 中央の山札5枚表示＆正体＋Sカード購読
+  subscribeCenter();
+  subscribeFullOpenMode();
+
+});
+
+// リンクコピー
+copyLinkBtn.addEventListener('click', async () => {
+  const url = `${location.origin}${location.pathname}?room=${state.roomCode}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    copyLinkBtn.classList.add('copied');
+    copyLinkBtn.textContent = 'コピー完了';
+
+    // 入力欄にも書き込む
+    inputCode.value = state.roomCode;
+
+    setTimeout(()=>{
+      copyLinkBtn.classList.remove('copied');
+      copyLinkBtn.textContent='リンクコピー';
+    },1500);
+  } catch {
+    prompt('コピーできません。手動でコピーしてください', url);
+  }
+});
+
+// ★ 席タブ生成（ホスト：人数を選択／それ以外：席を選択）
+async function renderSeatTabs(){
+  if (!state.roomCode) return;
+  if (isRenderingSeatTabs) return; // 多重実行ガード
+  isRenderingSeatTabs = true;
+
+  try {
+    // ここで必ずクリア（数字二重防止）
+    seatTabs.innerHTML = '';
+
+    const roomRef = ref(db, `rooms/${state.roomCode}`);
+    const roomSnap = await get(roomRef);
+    const roomData = roomSnap.val() || {};
+
+    const maxPlayers = roomData.maxPlayers || 8; // まだ未設定なら 8 とみなす
+
+    if(state.isHost && !roomData.maxPlayers){
+      // ホストかつ、まだ最大人数が未設定 → 「人数を選択」モード
+      seatLabel.textContent = '人数を選択';
+
+      // 人数候補：2〜8人
+      for(let i=2; i<=8; i++){
+        const tab = document.createElement('div');
+        tab.className = 'tab';
+        tab.textContent = i;
+
+        tab.onclick = async () => {
+          // 部屋に最大人数を書き込む
+          await update(roomRef, { maxPlayers: i });
+
+          // ★ ホストをテーブル1（席1）に自動着席（DBキーも1）
+          const tRef = ref(db, `rooms/${state.roomCode}/tables/1`);
+          await set(tRef, {
+            playerId: state.userId,
+            playerName: state.userName
+          });
+
+          state.seatedTable = 1;
+          seatPop.classList.add('hidden');
+        };
+
+        seatTabs.appendChild(tab);
+      }
+
+    } else {
+      // 一般プレイヤー or ホストだが既に maxPlayers 設定済み → 「席を選択」モード
+      seatLabel.textContent = '席を選択';
+
+      // tables 全体を一度だけ取得して、埋まっている席を判定（1〜maxPlayers）
+      const tablesSnap = await get(ref(db, `rooms/${state.roomCode}/tables`));
+      const tables = tablesSnap.val() || {};
+
+      for(let i=1; i<=maxPlayers; i++){
+        const tab = document.createElement('div');
+        tab.className = 'tab';
+        tab.textContent = i;
+
+        const t = tables[i];
+
+        if(t && t.playerId){
+          tab.classList.add('disabled');
+        }
+
+        tab.onclick = async () => {
+          if(tab.classList.contains('disabled')) return;
+
+          const tRef = ref(db, `rooms/${state.roomCode}/tables/${i}`);
+          await set(tRef, {
+            playerId: state.userId,
+            playerName: state.userName
+          });
+          tab.classList.add('disabled');
+
+          state.seatedTable = i;
+          seatPop.classList.add('hidden');
+        };
+
+        seatTabs.appendChild(tab);
+      }
+    }
+  } finally {
+    isRenderingSeatTabs = false;
+  }
+}
+
+// 観戦ボタン
+btnSeatCancel.onclick = () => {
+  seatPop.classList.add('hidden');
+  // 観戦するだけで席情報は消さない
+  state.seatedTable = null;
+};
+
+// ★ 着席者のみを購読して円上に表示
+function subscribePlayers(){
+  const tablesRef = ref(db, `rooms/${state.roomCode}/tables`);
+  onValue(tablesRef, async snap => {
+    const data = snap.val() || {};
+    const players = Object.entries(data)
+      .map(([seatIndex, t]) => (t && t.playerId ? {
+        id: t.playerId,
+        name: t.playerName || '名無し',
+        seatIndex: Number(seatIndex)
+      } : null))
+      .filter(Boolean)
+      .sort((a,b) => a.seatIndex - b.seatIndex);   // ★ テーブル番号順にソート
+
+    latestPlayers = players;
+
+    // ★ 自分の席が DB にあるなら state を補正（再接続時など）
+    const mySeat = players.find(p => p.id === state.userId);
+    if (mySeat && state.seatedTable === null) {
+      state.seatedTable = mySeat.seatIndex;
+      // すでに座っているので seatPop は不要
+      seatPop.classList.add('hidden');
+    }
+
+    // ★ 自分の席が DB から消えた（または奪われた）場合は観戦状態に戻す
+    const meStillSeated = players.some(p => p.id === state.userId);
+    if (!meStillSeated && state.seatedTable !== null) {
+      state.seatedTable = null;
+      // ★ 席タブを再描画してからポップを開く（数字二重防止）
+      await renderSeatTabs();
+      seatPop.classList.remove('hidden');
+    }
+
+    renderPlayerCircle(players);
+
+    // ★ プレイヤー人数が変わったときも丸チップ更新
+    updateRoundChips();
+  });
+}
+
+// ★ ミニカードをタップしたとき：
+//   - Sカードを持っているプレイヤーだけが実行可能
+//   - 対象カードを表向きにして10px下げる（open=true）
+//   - Sカードの所有権を、そのカードの持ち主に移動
+async function onMiniCardClick(ownerId, cardIndex){
+  if (!state.roomCode) return;
+
+  // すでに回収アニメ中なら新たにめくらない
+  if (isCollectAnimating) return;
+
+  const hand = state.hands[ownerId];
+  if (!hand || !Array.isArray(hand.cards)) return;
+
+  const cards = hand.cards;
+  const openArr = (hand.open && hand.open.slice()) || new Array(cards.length).fill(false);
+
+  // すでに表なら何もしない
+  if (openArr[cardIndex]) return;
+
+  // ▼ まだフル公開モードでないとき → これまで通り「Sを持っている人だけ」操作可能
+  if (!state.fullOpenMode){
+    if (!state.sOwner || state.userId !== state.sOwner) return; // Sを持っていない
+    if (ownerId === state.userId) return;                        // 他プレイヤーのみ
+
+    openArr[cardIndex] = true;
+
+    const updates = {};
+    updates[`rooms/${state.roomCode}/hands/${ownerId}/open`] = openArr;
+    updates[`rooms/${state.roomCode}/sOwner`] = ownerId; // Sカードの所有権移動
+
+    await update(ref(db), updates);
+    return;
+  }
+
+  // ▼ フル公開モードのとき → 誰でも他プレイヤーのカードを公開できる
+  //   （Sカードの移動は行わない）
+  if (ownerId === state.userId) return; // 自分の mini-hand は存在しない想定だが一応ガード
+
+  openArr[cardIndex] = true;
+
+  const updates = {};
+  updates[`rooms/${state.roomCode}/hands/${ownerId}/open`] = openArr;
+
+  await update(ref(db), updates);
+}
+
+
+// ★ ネームタグを円周上に等分配置
+//   - テーブル番号順を時計回りに配置
+//   - 自分が着席していれば「自分のタグ」が必ず円の一番下
+//   - 自分がまだ着席していない（観戦中など）のときは席順そのまま
+//   - ① 自分の裏向きミニカードは描写しない（p.id !== state.userId で除外）
+//   - ② Sカード所持者のネームタグの上に小さな「S」バッジ表示
+function renderPlayerCircle(players){
+  playerCircle.innerHTML = '';
+  if (!players.length) return;
+
+  const n = players.length;
+  const radius = 45;
+  const step = (2 * Math.PI) / n;
+  const anchorAngle = Math.PI / 2;   // 画面下
+
+  const meIndex = players.findIndex(p => p.id === state.userId);
+
+  players.forEach((p, idx) => {
+    // k は「席順インデックス」
+    const k = (meIndex === -1)
+      ? idx
+      : (idx - meIndex + n) % n;
+
+    const angle = anchorAngle + step * k;
+
+    const x = 50 + radius * Math.cos(angle);
+    const y = 50 + radius * Math.sin(angle);
+
+    const tag = document.createElement('div');
+    tag.className = 'player-tag' + (p.id === state.userId ? ' me' : '');
+    tag.style.left = `${x}%`;
+    tag.style.top = `${y}%`;
+
+    // 中身（名前のみ）
+    const main = document.createElement('div');
+    main.className = 'player-tag-main';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = p.name;
+    main.appendChild(nameSpan);
+
+    tag.appendChild(main);
+
+// ★ Sカード所持者のうち、「自分以外」のタグにだけニッパーマークを付ける
+if (state.sOwner === p.id && p.id !== state.userId){
+  const sInd = document.createElement('div');
+  sInd.className = 'player-tag-s-indicator';
+  // ★ テキストはなし。CSS 背景の nipper.png だけ表示
+  tag.appendChild(sInd);
+}
+
+
+    // ネームプレートクリックで「追い出し確認ポップ」
+    tag.onclick = () => {
+      if (p.id === state.userId) return;
+      if (!state.roomCode) return;
+      if (state.seatedTable !== null) return;
+
+      pendingSeatIndexToSteal = p.seatIndex;
+      pendingPlayerNameToSteal = p.name;
+      pendingSeatPlayerIdToSteal = p.id;
+
+      kickMessage.textContent = `「${p.name}」を追い出して、この席に着席しますか？`;
+      kickDialog.classList.remove('hidden');
+    };
+
+    // 他プレイヤーの手札を、ネームタグの下に小さく横並びで表示（裏向き）
+     const handData = state.hands[p.id];
+    if (p.id !== state.userId && handData && Array.isArray(handData.cards) && handData.cards.length){
+      const miniHand = document.createElement('div');
+      miniHand.className = 'mini-hand';
+
+      const cards = handData.cards || [];
+      const openFlags = handData.open || [];
+
+      // ★ フル公開モードなら、このプレイヤーの正体カードを一番左に出す
+      if (state.fullOpenMode && state.roles && state.roles[p.id] && state.roles[p.id].role){
+        const roleMini = document.createElement('div');
+        roleMini.className = 'mini-card mini-role-card';
+        const r = state.roles[p.id].role;
+        if (r === 'O'){
+          roleMini.style.backgroundImage = "url('policerole.png')";
+        } else if (r === 'X'){
+          roleMini.style.backgroundImage = "url('bombrole.png')";
+        } else {
+          roleMini.textContent = '?';
+        }
+        miniHand.appendChild(roleMini);
+      }
+
+      cards.forEach((v, idx2) => {
+        const card = document.createElement('div');
+        card.className = 'mini-card';
+
+        const isOpen = !!openFlags[idx2];
+
+        if (isOpen){
+          card.classList.add('is-open');
+          setCardFrontImage(card, v);
+        }else{
+          card.classList.add('is-back');
+          setCardBackImage(card);
+        }
+
+        // ★ フル公開前：S持ちだけが他人のカードをめくる
+        //    フル公開後：誰でも他人のカードをめくってよい
+        if (!isOpen && p.id !== state.userId){
+          card.style.cursor = 'pointer';
+          card.addEventListener('click', () => {
+            onMiniCardClick(p.id, idx2);
+          });
+        }
+
+        miniHand.appendChild(card);
+      });
+
+      tag.appendChild(miniHand);
+    }
+
+
+
+    playerCircle.appendChild(tag);
+  });
+}
+
+/* ★ 追い出しポップの挙動 */
+
+// ポップ外クリックで閉じる
+kickDialog.addEventListener('click', (e) => {
+  if (e.target === kickDialog) {
+    kickDialog.classList.add('hidden');
+    pendingSeatIndexToSteal = null;
+    pendingPlayerNameToSteal = null;
+    pendingSeatPlayerIdToSteal = null;
+  }
+});
+
+// 「いいえ」ボタン
+btnKickNo.addEventListener('click', (e) => {
+  e.stopPropagation();
+  kickDialog.classList.add('hidden');
+  pendingSeatIndexToSteal = null;
+  pendingPlayerNameToSteal = null;
+  pendingSeatPlayerIdToSteal = null;
+});
+
+// 「はい」ボタン
+btnKickYes.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  if (pendingSeatIndexToSteal == null || !state.roomCode) {
+    kickDialog.classList.add('hidden');
+    return;
+  }
+
+  const seatIndex = pendingSeatIndexToSteal;
+  const roomRef = ref(db, `rooms/${state.roomCode}`);
+
+  // まずルーム情報を取得（今のホストが誰かを見る）
+  const roomSnap = await get(roomRef);
+  const roomData = roomSnap.val() || {};
+
+  // 既存プレイヤーを上書きして、自分として着席
+  const tRef = ref(db, `rooms/${state.roomCode}/tables/${seatIndex}`);
+  await set(tRef, {
+    playerId: state.userId,
+    playerName: state.userName || '名無し'
+  });
+
+  // もし「追い出された人」がホストだったら、ホスト権を自分に移譲
+  if (roomData.hostId && pendingSeatPlayerIdToSteal && roomData.hostId === pendingSeatPlayerIdToSteal) {
+    await update(roomRef, { hostId: state.userId });
+  }
+
+  state.seatedTable = seatIndex;
+
+  kickDialog.classList.add('hidden');
+  pendingSeatIndexToSteal = null;
+  pendingPlayerNameToSteal = null;
+  pendingSeatPlayerIdToSteal = null;
+
+  seatPop.classList.add('hidden');
+});
+
+/* ★ プレイヤー人数に応じた正体カードデッキを作る */
+function buildRoleDeckByPlayerCount(playerCount){
+  let deck = [];
+  switch(playerCount){
+    case 3:
+      deck = ['O','O','X','X'];
+      break;
+    case 4:
+      deck = ['O','O','O','X','X'];
+      break;
+    case 5:
+      deck = ['O','O','O','X','X'];
+      break;
+    case 6:
+      deck = ['O','O','O','O','X','X'];
+      break;
+    case 7:
+      deck = ['O','O','O','O','X','X','X'];
+      break;
+    case 8:
+      deck = ['O','O','O','O','O','X','X','X'];
+      break;
+    default:
+      const good = Math.max(1, Math.ceil(playerCount / 2));
+      const bad  = Math.max(0, playerCount - good);
+      deck = new Array(good).fill('O').concat(new Array(bad).fill('X'));
+  }
+  return deck;
+}
+
+// ★ 共通シャッフル
+function shuffleInPlace(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// ★ 残っている全カードをシャッフルして
+//    「今席に座っているプレイヤー」にできるだけ等分で配り直す
+async function redistributeRemainingCards(){
+  if (!state.roomCode) return;
+
+  // ① 今「席に座っている」プレイヤーだけを対象にする
+  const tablesSnap = await get(ref(db, `rooms/${state.roomCode}/tables`));
+  const tables = tablesSnap.val() || {};
+  const seatedIds = [];
+  for (const [seatIndex, t] of Object.entries(tables)){
+    if (t && t.playerId){
+      seatedIds.push(t.playerId);
+    }
+  }
+  if (!seatedIds.length) return;
+
+  // ② そのプレイヤーたちが今持っているカードを全部まとめる
+  const handsSnap = await get(ref(db, `rooms/${state.roomCode}/hands`));
+  const handsNow = handsSnap.val() || {};
+
+  const allCards = [];
+  seatedIds.forEach(pid => {
+    const h = handsNow[pid];
+    const cards = (h && Array.isArray(h.cards)) ? h.cards.slice() : [];
+    allCards.push(...cards);
+  });
+
+  if (!allCards.length) return;
+
+  // ③ まとめたカードをシャッフル
+  shuffleInPlace(allCards);
+
+  // ④ 「できるだけ完全に等分」になるように配り直す
+  const playerCount = seatedIds.length;
+  const baseCount = Math.floor(allCards.length / playerCount);
+  let remainder = allCards.length % playerCount;
+
+  const newHands = {};
+  let index = 0;
+
+  seatedIds.forEach(pid => {
+    // 余り分は先頭のプレイヤーから1枚ずつ配る
+    const take = baseCount + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
+
+    const cards = allCards.slice(index, index + take);
+    index += take;
+
+    newHands[pid] = {
+      cards,
+      open: new Array(cards.length).fill(false) // 全員公開フラグリセット
+    };
+  });
+
+  // ⑤ hands をまるごと上書き（席にいない旧プレイヤーの手札は消える）
+  await update(ref(db), {
+    [`rooms/${state.roomCode}/hands`]: newHands
+  });
+}
+
+/* ★ スタート時：正体カード＋山札デッキから各プレイヤーに5枚配布＋Sカード配布 */
+async function dealInitialHands(){
+  if (!state.roomCode) return;
+
+  const tablesSnap = await get(ref(db, `rooms/${state.roomCode}/tables`));
+  const tables = tablesSnap.val() || {};
+
+  // 着席しているプレイヤー一覧
+  const players = [];
+  for (const [seatIndex, t] of Object.entries(tables)){
+    if (t && t.playerId){
+      players.push({
+        id: t.playerId,
+        name: t.playerName || '名無し',
+        seatIndex: Number(seatIndex)
+      });
+    }
+  }
+
+  const playerCount = players.length;
+  if (!playerCount) return;
+
+  // ---------- 山札デッキ構成 ----------
+  // 1 が 1枚
+  // 2 が プレイヤー人数分
+  // 3 が 「プレイヤー人数分×5 − (1 + プレイヤー人数分)」
+  const deck = [];
+  deck.push(1); // 1 が 1枚
+
+  for (let i = 0; i < playerCount; i++){
+    deck.push(2); // 2 が プレイヤー人数分
+  }
+
+  const count3 = playerCount * 5 - (1 + playerCount);
+  for (let i = 0; i < count3; i++){
+    deck.push(3); // 3 が残り
+  }
+  // ここで deck.length === 5 * playerCount
+
+  shuffleInPlace(deck);
+
+  // ---------- 各プレイヤーに5枚ずつ配る ----------
+  const hands = {};
+  let deckIndex = 0;
+
+  players.forEach(p => {
+    const cards = [];
+    for (let i = 0; i < 5; i++){
+      cards.push(deck[deckIndex++]);
+    }
+    hands[p.id] = {
+      cards,
+      open: new Array(cards.length).fill(false)
+    };
+  });
+
+  // ---------- 正体カードを配る ----------
+  const roleDeck = buildRoleDeckByPlayerCount(playerCount);
+  shuffleInPlace(roleDeck);
+
+  const roles = {};
+  players.forEach((p, idx) => {
+    roles[p.id] = { role: roleDeck[idx] };
+  });
+
+  // ---------- Sカードの配布（ランダムな1人） ----------
+  const randIndex = Math.floor(Math.random() * playerCount);
+  const sOwner = players[randIndex].id;
+
+  // ---------- DB に一括反映 ----------
+  const updates = {};
+  updates[`rooms/${state.roomCode}/hands`] = hands;
+  updates[`rooms/${state.roomCode}/roles`] = roles;
+  updates[`rooms/${state.roomCode}/sOwner`] = sOwner;
+
+  await update(ref(db), updates);
+}
+
+/* ★ ホスト設定ボタン → スタートポップ表示／非表示切り替え */
+hostSettingsBtn.addEventListener('click', () => {
+  if (!state.isHost) return;
+  const isHidden = startPop.classList.contains('hidden');
+  if (isHidden) {
+    startPop.classList.remove('hidden');
+  } else {
+    startPop.classList.add('hidden');
+  }
+});
+
+/* ★ スタートポップの閉じるボタン */
+btnStartPopClose.addEventListener('click', () => {
+  startPop.classList.add('hidden');
+});
+
+/* ★ スタートボタン：正体＋S＋全員にカード5枚ずつ配布 */
+btnGameStart.addEventListener('click', async () => {
+  if (!state.isHost) return;
+
+  // 新しいゲーム開始としてアニメ状態とラウンドをリセット
+  isCollectAnimating = false; // ★ 念のためアニメ中フラグもクリア
+  state.round = 1;
+
+  // ★ 山札・重なりレベルもリセット
+  state.centerStackLevel = 0;
+  state.centerDeckCards = [];
+
+  await dealInitialHands();
+
+  // ★ DB にラウンド番号＋山札リセットを書き込む（全員に共有）
+  await update(ref(db, `rooms/${state.roomCode}`), {
+   round: state.round,
+    centerDeck: [],
+    centerStackLevel: 0,
+    fullOpenMode: false
+  });
+
+  startPop.classList.add('hidden');
+  // 表示自体は subscribeRound() 側で行う
+});
+</script>
+
+</body>
+</html>
