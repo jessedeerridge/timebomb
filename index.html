@@ -2224,7 +2224,11 @@ async function playAnimRightDeckShuffle(ev){
   }
 
   isCollectAnimating = true;
+  handsDirtyWhileAnimating = false;
   updateRightDeckUI(deckCount);
+
+  const prevDeckVisibility = deckRowRight?.style?.visibility ?? '';
+  if (deckRowRight) deckRowRight.style.visibility = 'hidden';
 
   const { cx, cy } = getDeckTargetCenterRight();
 
@@ -2265,30 +2269,40 @@ async function playAnimRightDeckShuffle(ev){
     backEl = tmp;
   };
 
-  for (let i = 0; i < cycles; i++){
-    frontEl.classList.remove('movingIn');
-    void frontEl.offsetWidth;
-    frontEl.classList.add('movingOut');
-    await sleep(durOut);
+  try {
+    for (let i = 0; i < cycles; i++){
+      frontEl.classList.remove('movingIn');
+      void frontEl.offsetWidth;
+      frontEl.classList.add('movingOut');
+      await sleep(durOut);
 
-    frontEl.classList.remove('movingOut');
-    swapLayers();
+      frontEl.classList.remove('movingOut');
+      swapLayers();
 
-    backEl.classList.remove('movingOut');
-    void backEl.offsetWidth;
-    backEl.classList.add('movingIn');
-    await sleep(durIn);
+      backEl.classList.remove('movingOut');
+      void backEl.offsetWidth;
+      backEl.classList.add('movingIn');
+      await sleep(durIn);
 
-    backEl.classList.remove('movingIn');
-    await sleep(pause);
+      backEl.classList.remove('movingIn');
+      await sleep(pause);
+    }
+  } finally {
+    if (layer && layer.parentNode){
+      layer.parentNode.removeChild(layer);
+    }
+
+    if (deckRowRight) deckRowRight.style.visibility = prevDeckVisibility;
+
+    isCollectAnimating = false;
+
+    if (handsDirtyWhileAnimating){
+      handsDirtyWhileAnimating = false;
+      renderHands();
+    }
+
+    tryPlayPendingAnimEvent();
   }
-
-  if (layer && layer.parentNode){
-    layer.parentNode.removeChild(layer);
-  }
-
-  isCollectAnimating = false;
-  tryPlayPendingAnimEvent();
 }
 
 /* =========================================================
