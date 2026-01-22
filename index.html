@@ -426,6 +426,57 @@ main{
   display:none;
 }
 
+/* =========================
+   ★ 右デッキのシャッフル演出（小デッキ用）
+   ========================= */
+.right-deck-shuffle{
+  --shuffle-card-w:28px;
+  --shuffle-card-h:42px;
+  --shuffle-offset-x:2px;
+  --shuffle-offset-y:2px;
+  --shuffle-out-x:18px;
+  --shuffle-tilt-base:5deg;
+  --shuffle-tilt-more:5deg;
+  --shuffle-dur-out:220ms;
+  --shuffle-dur-in:220ms;
+  --shuffle-pause:20ms;
+  position:fixed;
+  width:var(--shuffle-card-w);
+  height:var(--shuffle-card-h);
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  z-index:257;
+}
+.right-deck-shuffle-card{
+  position:absolute;
+  inset:0;
+  border-radius:6px;
+  border:1px solid rgba(0,0,0,.18);
+  background-color:#fff;
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  box-shadow:none;
+  transform-origin:center;
+  will-change:transform;
+}
+.right-deck-shuffle-card.back{
+  transform: translate(var(--shuffle-offset-x), var(--shuffle-offset-y)) rotate(var(--shuffle-tilt-base));
+  z-index:1;
+}
+.right-deck-shuffle-card.front{
+  transform: translate(0,0) rotate(var(--shuffle-tilt-base));
+  z-index:2;
+}
+.right-deck-shuffle-card.movingOut{
+  transition: transform var(--shuffle-dur-out) ease-in-out;
+  transform: translate(var(--shuffle-out-x), 0) rotate(calc(var(--shuffle-tilt-base) + var(--shuffle-tilt-more)));
+}
+.right-deck-shuffle-card.movingIn{
+  transition: transform var(--shuffle-dur-in) ease-in-out;
+  transform: translate(var(--shuffle-offset-x), var(--shuffle-offset-y)) rotate(var(--shuffle-tilt-base));
+}
+
 /* ★ 中央の人数分丸チップ */
 .round-chip-row{
   position:absolute;
@@ -805,6 +856,22 @@ let latestPlayers = [];
    ========================= */
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+function cssMsFrom(el, name, fallback = 0){
+  if (!el) return fallback;
+  const v = getComputedStyle(el).getPropertyValue(name).trim();
+  if (!v) return fallback;
+  if (v.endsWith('ms')) {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+  if (v.endsWith('s')) {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n * 1000 : fallback;
+  }
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 async function waitUntil(fn, timeoutMs = 900){
   const start = performance.now();
   return new Promise(resolve => {
@@ -854,6 +921,7 @@ function tryPlayPendingAnimEvent(){
     if (!ev) continue;
     if (ev.phase === 'openToDeck') { playAnimOpenToDeck(ev); return; }
     if (ev.phase === 'allToRightDeck') { playAnimAllToRightDeck(ev); return; }
+    if (ev.phase === 'rightDeckShuffle') { playAnimRightDeckShuffle(ev); return; }
     if (ev.phase === 'dealBundles') { playAnimDealBundles(ev); return; }
   }
 }
@@ -1715,6 +1783,8 @@ function subscribeAnimEvent(){
       playAnimOpenToDeck(ev);
     } else if (ev.phase === 'allToRightDeck'){
       playAnimAllToRightDeck(ev);
+    } else if (ev.phase === 'rightDeckShuffle'){
+      playAnimRightDeckShuffle(ev);
     } else if (ev.phase === 'dealBundles'){
       playAnimDealBundles(ev);
     }
@@ -2049,46 +2119,60 @@ async function hostScheduleSecondShuffle(handsAfterOpenRemoved){
     return;
   }
 
-  // シャッフル
-  shuffleInPlace(allCards);
-
   // 配布枚数（均等＋余りを前から）
   const playerCount = seatedIds.length;
   const baseCount = Math.floor(allCards.length / playerCount);
   let remainder = allCards.length % playerCount;
 
   const dealPlan = [];
-  const newHands = {};
-  let idx = 0;
 
   seatedIds.forEach(pid => {
     const take = baseCount + (remainder > 0 ? 1 : 0);
     if (remainder > 0) remainder--;
 
     dealPlan.push({ pid, count: take });
-
-    const cards = allCards.slice(idx, idx + take);
-    idx += take;
-    newHands[pid] = { cards, open: new Array(cards.length).fill(false) };
   });
 
   // ① 裏向き回収→右デッキ
   const COLLECT_DUR = 1050;
+  const SHUFFLE_DUR = 1380;
+  const SHUFFLE_CYCLES = 3;
   await hostEmitAnimEvent('allToRightDeck', {
     duration: COLLECT_DUR,
     deckCount: allCards.length,
     dealPlan
   });
 
-  // ② handsを更新（配る前に“配布先の手札枚数”を確定させる）
+  // ② 右デッキでシャッフル演出
   setTimeout(async () => {
+    await hostEmitAnimEvent('rightDeckShuffle', {
+      duration: SHUFFLE_DUR,
+      deckCount: allCards.length,
+      cycles: SHUFFLE_CYCLES
+    });
+  }, COLLECT_DUR + 120);
+
+  // ③ handsを更新（配る前に“配布先の手札枚数”を確定させる）
+  setTimeout(async () => {
+    shuffleInPlace(allCards);
+
+    const newHands = {};
+    let idx = 0;
+
+    dealPlan.forEach(p => {
+      const take = Math.max(0, Number(p.count) || 0);
+      const cards = allCards.slice(idx, idx + take);
+      idx += take;
+      newHands[p.pid] = { cards, open: new Array(cards.length).fill(false) };
+    });
+
     await update(ref(db), {
       [`${roomBase}/hands`]: newHands,
       [`${roomBase}/roundChipsFrontCount`]: 0,
       [`${roomBase}/fullOpenMode`]: false
     });
 
-    // ③ 束で順番配布（右デッキから）
+    // ④ 束で順番配布（右デッキから）
     const DEAL_PER_PLAYER = 420;
     const DEAL_GAP = 150;
 
@@ -2099,7 +2183,7 @@ async function hostScheduleSecondShuffle(handsAfterOpenRemoved){
       dealPlan
     });
 
-    // ④ 次ラウンドへ（配り終わりに round++）
+    // ⑤ 次ラウンドへ（配り終わりに round++）
     const totalDealMs = dealPlan.reduce((sum, p) => {
       const take = Math.max(0, Number(p.count) || 0);
       if (!take) return sum;
@@ -2114,7 +2198,97 @@ async function hostScheduleSecondShuffle(handsAfterOpenRemoved){
       });
     }, totalDealMs);
 
-  }, COLLECT_DUR + 120);
+  }, COLLECT_DUR + SHUFFLE_DUR + 260);
+}
+
+/* =========================================================
+   ★ 2回目の右デッキシャッフル（小デッキ演出）
+   ========================================================= */
+async function playAnimRightDeckShuffle(ev){
+  if (state.fullOpenMode || stopRoundCollectForBoom) {
+    return;
+  }
+  if (isCollectAnimating){
+    queueAnimEvent(ev);
+    return;
+  }
+
+  const deckCount = Math.max(0, Number(ev.deckCount) || state.rightDeckCount || 0);
+  if (deckCount <= 0) return;
+
+  const cycles = Math.max(1, Number(ev.cycles) || 3);
+
+  const oldLayer = document.getElementById('rightDeckShuffleLayer');
+  if (oldLayer && oldLayer.parentNode){
+    oldLayer.parentNode.removeChild(oldLayer);
+  }
+
+  isCollectAnimating = true;
+  updateRightDeckUI(deckCount);
+
+  const { cx, cy } = getDeckTargetCenterRight();
+
+  const layer = document.createElement('div');
+  layer.id = 'rightDeckShuffleLayer';
+  layer.className = 'right-deck-shuffle';
+  layer.style.left = `${cx}px`;
+  layer.style.top = `${cy}px`;
+
+  const back = document.createElement('div');
+  back.className = 'right-deck-shuffle-card back';
+  setCardBackImage(back);
+
+  const front = document.createElement('div');
+  front.className = 'right-deck-shuffle-card front';
+  setCardBackImage(front);
+
+  layer.appendChild(back);
+  layer.appendChild(front);
+  document.body.appendChild(layer);
+
+  let frontEl = front;
+  let backEl = back;
+
+  const durOut = cssMsFrom(layer, '--shuffle-dur-out', 220);
+  const durIn = cssMsFrom(layer, '--shuffle-dur-in', 220);
+  const pause = cssMsFrom(layer, '--shuffle-pause', 20);
+
+  const swapLayers = () => {
+    frontEl.classList.remove('front');
+    frontEl.classList.add('back');
+
+    backEl.classList.remove('back');
+    backEl.classList.add('front');
+
+    const tmp = frontEl;
+    frontEl = backEl;
+    backEl = tmp;
+  };
+
+  for (let i = 0; i < cycles; i++){
+    frontEl.classList.remove('movingIn');
+    void frontEl.offsetWidth;
+    frontEl.classList.add('movingOut');
+    await sleep(durOut);
+
+    frontEl.classList.remove('movingOut');
+    swapLayers();
+
+    backEl.classList.remove('movingOut');
+    void backEl.offsetWidth;
+    backEl.classList.add('movingIn');
+    await sleep(durIn);
+
+    backEl.classList.remove('movingIn');
+    await sleep(pause);
+  }
+
+  if (layer && layer.parentNode){
+    layer.parentNode.removeChild(layer);
+  }
+
+  isCollectAnimating = false;
+  tryPlayPendingAnimEvent();
 }
 
 /* =========================================================
