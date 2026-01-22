@@ -2036,6 +2036,8 @@ async function playAnimOpenToDeck(ev){
   if (handsDirtyWhileAnimating){
     handsDirtyWhileAnimating = false;
     renderHands();
+  } else {
+    renderHands();
   }
 
   tryPlayPendingAnimEvent();
@@ -2635,6 +2637,8 @@ async function playAnimDealBundles(ev){
 
   if (handsDirtyWhileAnimating){
     handsDirtyWhileAnimating = false;
+    renderHands();
+  } else {
     renderHands();
   }
 
