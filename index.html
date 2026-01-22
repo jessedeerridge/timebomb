@@ -412,20 +412,6 @@ main{
 .action-deck .card.c3{ transform:translate(2px,-2px); opacity:.90; }
 .action-deck .card.c4{ transform:translate(3px,-3px); opacity:.86; }
 .action-deck .card.c5{ transform:translate(4px,-4px); opacity:.82; }
-.action-deck .count{
-  position:absolute;
-  right:-8px; top:-8px;
-  font-size:11px;
-  font-weight:900;
-  padding:2px 6px;
-  border-radius:999px;
-  background:rgba(255,255,255,.92);
-  border:1px solid rgba(0,0,0,.18);
-  color:#111;
-  line-height:1.1;
-  display:none;
-}
-
 /* =========================
    ★ 右デッキのシャッフル演出（小デッキ用）
    ========================= */
@@ -956,9 +942,6 @@ function ensureDeckBuilt(deckEl){
     c.className = `card c${i}`;
     deckEl.appendChild(c);
   }
-  const cnt = document.createElement('div');
-  cnt.className = 'count';
-  deckEl.appendChild(cnt);
 
   deckEl.dataset.built = '1';
 }
@@ -975,12 +958,6 @@ function updateLeftDeckUI(){
     return;
   }
   deckRow.style.display = 'block';
-
-  const cntEl = deckRow.querySelector('.count');
-  if (cntEl){
-    cntEl.textContent = String(count);
-    cntEl.style.display = 'block';
-  }
 
   updateDeckStackUI(deckRow, count);
 
@@ -1019,12 +996,6 @@ function updateRightDeckUI(count){
     return;
   }
   deckRowRight.style.display = 'block';
-
-  const cntEl = deckRowRight.querySelector('.count');
-  if (cntEl){
-    cntEl.textContent = String(c);
-    cntEl.style.display = 'block';
-  }
 
   updateDeckStackUI(deckRowRight, c);
 
@@ -2115,7 +2086,7 @@ async function hostScheduleSecondShuffle(handsAfterOpenRemoved){
   if (!allCards.length){
     const emptyHands = {};
     seatedIds.forEach(pid => emptyHands[pid] = { cards: [], open: [] });
-    await update(ref(db), { [`${roomBase}/hands`]: emptyHands, [`${roomBase}/roundChipsFrontCount`]: 0, [`${roomBase}/fullOpenMode`]: false });
+    await update(ref(db), { [`${roomBase}/hands`]: emptyHands, [`${roomBase}/fullOpenMode`]: false });
     const nextRound = (state.round || 0) + 1;
     await update(ref(db, `${roomBase}`), { round: nextRound, animEvent: null });
     return;
@@ -2170,7 +2141,6 @@ async function hostScheduleSecondShuffle(handsAfterOpenRemoved){
 
     await update(ref(db), {
       [`${roomBase}/hands`]: newHands,
-      [`${roomBase}/roundChipsFrontCount`]: 0,
       [`${roomBase}/fullOpenMode`]: false
     });
 
@@ -2548,6 +2518,7 @@ async function playAnimDealBundles(ev){
     if (!pid || !take) continue;
 
     const { cx: fromCX, cy: fromCY } = getDeckTargetCenterRight();
+    const isLastBundle = (remain - take) <= 0;
 
     // 配布先中心（自分＝手札中心、他人＝タグ中心）
     const target = getFallbackStartCenter(pid);
@@ -2557,6 +2528,9 @@ async function playAnimDealBundles(ev){
     // 束（take枚ぶんの“束感”）：見た目は最大6枚で表現（多いときも厚みだけ）
     const shown = Math.min(6, take);
     const stack = [];
+    if (isLastBundle && deckRowRight){
+      deckRowRight.style.visibility = 'hidden';
+    }
     for (let k=0; k<shown; k++){
       const c = document.createElement('div');
       c.className = 'round-collect-card';
@@ -2604,6 +2578,7 @@ async function playAnimDealBundles(ev){
     // 右デッキ残数を減らす
     remain = Math.max(0, remain - take);
     updateRightDeckUI(remain);
+    if (deckRowRight) deckRowRight.style.visibility = '';
 
     // その人の手札を表示
     dealtPids.add(pid);
