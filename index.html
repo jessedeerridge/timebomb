@@ -22,6 +22,8 @@ h1{margin:0;font-size:18px;}
 .seat-pop .row{display:flex;gap:8px;align-items:center;}
 .seat-pop label{width:84px;font-size:13px;}
 .seat-pop .tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.host-selecting-pop{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#111;color:#fff;border-radius:999px;padding:8px 14px;font-size:13px;box-shadow:0 10px 22px rgba(0,0,0,.3);z-index:221;display:flex;align-items:center;justify-content:center;}
+.host-selecting-pop.hidden{display:none;}
 .tab{padding:6px 10px;border:1px solid #ddd;border-radius:999px;cursor:pointer;user-select:none;position:relative;}
 .tab.disabled::after{content:'✕';position:absolute;inset:0;display:grid;place-items:center;font-size:18px;font-weight:700;color:#b91c1c;pointer-events:none;}
 .tab.active{background:#111;color:#fff;border-color:#111;}
@@ -304,7 +306,7 @@ main{
   background:#1f2937;
   color:#fff;
   border-radius:999px;
-  font-size:14px;
+  font-size:18px;
   font-weight:700;
   box-shadow:0 12px 30px rgba(0,0,0,.25);
   z-index:260;
@@ -685,6 +687,7 @@ body.pulse-stop .player-tag .mini-card.pulse{ animation:none; }
     <button class="btn small ghost" id="btnSeatCancel">観戦</button>
   </div>
 </div>
+<div id="hostSelectingPop" class="host-selecting-pop hidden">ホストが人数を選択中です。</div>
 
 <div id="kickDialog" class="dialog-backdrop hidden">
   <div class="dialog-box" id="kickDialogBox">
@@ -753,6 +756,7 @@ const state = {
   userName: null,
   roomCode: null,
   seatedTable: null,
+  isSpectating: false,
   isHost: false,
   hands: {},
   roles: {},
@@ -806,6 +810,7 @@ const copyLinkBtn = document.getElementById('copyLinkBtn');
 
 const seatPop = document.getElementById('seatPop');
 const seatTabs = document.getElementById('seatTabs');
+const hostSelectingPop = document.getElementById('hostSelectingPop');
 const btnSeatCancel = document.getElementById('btnSeatCancel');
 const seatLabel = seatPop.querySelector('label');
 
@@ -1379,6 +1384,7 @@ async function restoreSeatFromDB(){
 
   if (mySeatIndex !== null) {
     state.seatedTable = mySeatIndex;
+    state.isSpectating = false;
   }
 }
 
@@ -1616,6 +1622,14 @@ function setCardBackImage(el){
   if (el) el.dataset.cardValue = '';
 }
 
+function shouldHideHandForPid(pid){
+  if (!pid) return false;
+  if (state.fullOpenMode) return false;
+  const dealingActive = isDealing || state.rightDeckCount > 0;
+  if (!dealingActive) return false;
+  return !dealtPids.has(pid);
+}
+
 function renderMyHand(){
   myHandEl.innerHTML = '';
   const myId = state.userId;
@@ -1633,7 +1647,7 @@ function renderMyHand(){
     if (openArr[idx]) card.classList.add('is-open');
     else card.classList.add('is-closed');
 
-    if (isDealing && !dealtPids.has(myId)){
+    if (shouldHideHandForPid(myId)){
       card.style.visibility = 'hidden';
     }
 
@@ -2694,9 +2708,9 @@ btnJoin.addEventListener('click', async () => {
 
   if (state.seatedTable === null) {
     await renderSeatTabs();
-    seatPop.classList.remove('hidden');
+    syncSeatPopVisibility();
   } else {
-    seatPop.classList.add('hidden');
+    syncSeatPopVisibility();
   }
 
   subscribePlayers();
@@ -2730,6 +2744,15 @@ copyLinkBtn.addEventListener('click', async () => {
   }
 });
 
+function syncSeatPopVisibility(){
+  const waitingForHost = hostSelectingPop && !hostSelectingPop.classList.contains('hidden');
+  if (waitingForHost || state.seatedTable !== null || state.isSpectating){
+    seatPop.classList.add('hidden');
+  } else {
+    seatPop.classList.remove('hidden');
+  }
+}
+
 async function renderSeatTabs(){
   if (!state.roomCode) return;
   if (isRenderingSeatTabs) return;
@@ -2743,6 +2766,15 @@ async function renderSeatTabs(){
     const roomData = roomSnap.val() || {};
 
     const maxPlayers = roomData.maxPlayers || 8;
+
+    if (!roomData.maxPlayers && !state.isHost){
+      hostSelectingPop?.classList.remove('hidden');
+      seatTabs.innerHTML = '';
+      syncSeatPopVisibility();
+      return;
+    }
+
+    hostSelectingPop?.classList.add('hidden');
 
     if(state.isHost && !roomData.maxPlayers){
       seatLabel.textContent = '人数を選択';
@@ -2762,7 +2794,8 @@ async function renderSeatTabs(){
           });
 
           state.seatedTable = 1;
-          seatPop.classList.add('hidden');
+          state.isSpectating = false;
+          syncSeatPopVisibility();
         };
 
         seatTabs.appendChild(tab);
@@ -2795,7 +2828,8 @@ async function renderSeatTabs(){
           tab.classList.add('disabled');
 
           state.seatedTable = i;
-          seatPop.classList.add('hidden');
+          state.isSpectating = false;
+          syncSeatPopVisibility();
         };
 
         seatTabs.appendChild(tab);
@@ -2809,6 +2843,7 @@ async function renderSeatTabs(){
 btnSeatCancel.onclick = () => {
   seatPop.classList.add('hidden');
   state.seatedTable = null;
+  state.isSpectating = true;
 };
 
 function subscribePlayers(){
@@ -2829,17 +2864,20 @@ function subscribePlayers(){
     const mySeat = players.find(p => p.id === state.userId);
     if (mySeat && state.seatedTable === null) {
       state.seatedTable = mySeat.seatIndex;
-      seatPop.classList.add('hidden');
+      state.isSpectating = false;
+      syncSeatPopVisibility();
     }
 
     const meStillSeated = players.some(p => p.id === state.userId);
     if (!meStillSeated && state.seatedTable !== null) {
       state.seatedTable = null;
+      state.isSpectating = false;
       await renderSeatTabs();
-      seatPop.classList.remove('hidden');
+      syncSeatPopVisibility();
     }
-    if (!seatPop.classList.contains('hidden')) {
+    if (state.seatedTable === null) {
       await renderSeatTabs();
+      syncSeatPopVisibility();
     }
 
     renderPlayerCircle(players);
@@ -3033,7 +3071,7 @@ function renderPlayerCircle(players){
           }
         }
 
-        if (isDealing && !dealtPids.has(p.id)){
+        if (shouldHideHandForPid(p.id)){
           card.style.visibility = 'hidden';
         }
 
