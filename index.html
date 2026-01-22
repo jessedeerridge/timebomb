@@ -185,6 +185,7 @@ main{
 }
 .my-role-card.good{ background-image:url('policerole.jpg'); }
 .my-role-card.bad{ background-image:url('bombrole.jpg'); }
+.my-role-card.spy{ background-image:url('spy.jpg'); }
 
 .my-s-card{
   width:65px;
@@ -343,6 +344,7 @@ main{
 .role-row:last-child{ border-bottom:none; }
 
 .role-card{
+  position:relative;
   width:72px;
   height:108px;
   border-radius:10px;
@@ -370,6 +372,42 @@ main{
   margin:0;
   opacity:.92;
 }
+
+.help-divider{
+  height:1px;
+  background:#e5e7eb;
+  margin:12px 0;
+}
+
+.role-count-tag{
+  position:absolute;
+  top:6px;
+  right:6px;
+  min-width:18px;
+  height:18px;
+  padding:0 4px;
+  border-radius:9px;
+  background:#111;
+  color:#fff;
+  font-size:11px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.2);
+}
+
+.role-card.spy-card{
+  opacity:.32;
+  transition:opacity .15s ease;
+}
+.role-card.spy-card.is-enabled{
+  opacity:1;
+}
+.role-card.spy-card.host-toggle{
+  cursor:pointer;
+}
+
 
 
 /* ★ スタートポップ（右下） */
@@ -884,6 +922,8 @@ const state = {
   roles: {},
   sOwner: null,
   round: 0,
+  spyEnabled: false,
+  maxPlayers: null,
 
   // ★ 中央山札（表向き）…左スロットに描画
   centerDeckCards: [],
@@ -1541,18 +1581,80 @@ function updateHostUI(){
    ★ 追加：ヘルプ（一覧）ポップ
    ========================= */
 const ROLE_HELP = [
-  { name:'正体カード：警察（O）', img:"policerole.jpg", text:'味方。爆弾（X）を見つけて止める。' },
-  { name:'正体カード：爆弾（X）', img:"bombrole.jpg", text:'爆弾陣営。1（爆弾カード）を公開させるか、混乱を誘う。' },
-  { name:'カード：1（爆弾）', img:"boomcard.jpg", text:'公開された時点で「フルオープン」になりやすい（演出が出る）。' },
-  { name:'カード：2（成功）', img:"successcard.jpg", text:'成功チップが進む。全員分の成功が揃うと成功演出。' },
-  { name:'カード：3（しーん）', img:"shiin.jpg", text:'特に効果なし（はずれ）。' },
+  {
+    id: 'police',
+    category: 'identity',
+    name:'タイムポリス',
+    img:"policerole.jpg",
+    text:'全ての解除コードを切断する。',
+    countType: 'police'
+  },
+  {
+    id: 'bomber',
+    category: 'identity',
+    name:'正体カード：ボマー団',
+    img:"bombrole.jpg",
+    text:'爆弾コードを切断するか、解除しないままラウンド4を終える。',
+    countType: 'bomber'
+  },
+  {
+    id: 'spy',
+    category: 'identity',
+    name:'スパイ',
+    img:"spy.jpg",
+    text:'ラウンド4を終える。',
+  },
+  {
+    id: 'boom',
+    category: 'card',
+    name:'爆弾',
+    img:"boomcard.jpg",
+    text:'これが切断されるとボマー団の勝ち。一枚だけある。'
+  },
+  {
+    id: 'success',
+    category: 'card',
+    name:'解除',
+    img:"successcard.jpg",
+    text:'これが全て切断できると、爆弾を解除できる。',
+    countType: 'success'
+  },
+  {
+    id: 'blank',
+    category: 'card',
+    name:'しーん',
+    img:"shiin.jpg",
+    text:'特になし。'
+  },
 ];
+
+function getCurrentPlayerCount(){
+  const count = latestPlayers.length;
+  if (count) return count;
+  if (state.maxPlayers) return state.maxPlayers;
+  return 0;
+}
+
+function getRoleCounts(playerCount){
+  if (!playerCount) return { police: 0, bomber: 0 };
+  const deck = buildRoleDeckByPlayerCount(playerCount);
+  let police = 0;
+  let bomber = 0;
+  deck.forEach(role => {
+    if (role === 'O') police += 1;
+    if (role === 'X') bomber += 1;
+  });
+  return { police, bomber };
+}
 
 function renderHelpList(){
   if (!helpBody) return;
   helpBody.innerHTML = '';
 
-  ROLE_HELP.forEach(item => {
+  const playerCount = getCurrentPlayerCount();
+  const roleCounts = getRoleCounts(playerCount);
+
+  const renderItem = (item) => {
     const row = document.createElement('div');
     row.className = 'role-row';
 
@@ -1563,6 +1665,33 @@ function renderHelpList(){
     if (item.img){
       card.style.backgroundImage = `url('${item.img}')`;
       if (item.img.includes('nipper')) card.style.backgroundSize = 'contain';
+    }
+
+    if (item.countType){
+      let countValue = 0;
+      if (item.countType === 'police') countValue = roleCounts.police;
+      if (item.countType === 'bomber') countValue = roleCounts.bomber;
+      if (item.countType === 'success') countValue = playerCount;
+
+      const countTag = document.createElement('div');
+      countTag.className = 'role-count-tag';
+      countTag.textContent = String(countValue);
+      card.appendChild(countTag);
+    }
+
+    if (item.id === 'spy'){
+      card.classList.add('spy-card');
+      if (state.spyEnabled) card.classList.add('is-enabled');
+      if (state.isHost){
+        card.classList.add('host-toggle');
+        card.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          if (!state.roomCode) return;
+          await update(ref(db, `rooms/${state.roomCode}`), {
+            spyEnabled: !state.spyEnabled
+          });
+        });
+      }
     }
 
     const desc = document.createElement('div');
@@ -1582,9 +1711,21 @@ function renderHelpList(){
     row.appendChild(card);
     row.appendChild(desc);
     helpBody.appendChild(row);
-  });
-}
+  };
 
+  const identityItems = ROLE_HELP.filter(item => item.category === 'identity');
+  const cardItems = ROLE_HELP.filter(item => item.category === 'card');
+
+  identityItems.forEach(renderItem);
+
+  if (identityItems.length && cardItems.length){
+    const divider = document.createElement('div');
+    divider.className = 'help-divider';
+    helpBody.appendChild(divider);
+  }
+
+  cardItems.forEach(renderItem);
+}
 function openHelp(){
   renderHelpList();
   helpBackdrop?.classList.remove('hidden');
@@ -1655,6 +1796,19 @@ function subscribeHostState(){
     const hostId = snap.val();
     state.isHost = (hostId === state.userId);
     updateHostUI();
+  });
+}
+
+function subscribeRoomConfig(){
+  if (!state.roomCode) return;
+  const roomRef = ref(db, `rooms/${state.roomCode}`);
+  onValue(roomRef, snap => {
+    const data = snap.val() || {};
+    state.maxPlayers = data.maxPlayers ?? null;
+    state.spyEnabled = Boolean(data.spyEnabled);
+    if (helpBackdrop && !helpBackdrop.classList.contains('hidden')){
+      renderHelpList();
+    }
   });
 }
 
@@ -1890,6 +2044,7 @@ function renderMyRoleArea(){
 
   if (roleInfo.role === 'O') cls += ' good';
   else if (roleInfo.role === 'X') cls += ' bad';
+  else if (roleInfo.role === 'S') cls += ' spy';
   else roleCard.textContent = '?';
 
   roleCard.className = cls;
@@ -2921,6 +3076,7 @@ btnJoin.addEventListener('click', async () => {
 
   subscribePlayers();
   subscribeHostState();
+  subscribeRoomConfig();
   subscribeRound();
   subscribeHands();
   subscribeCenter();
@@ -3252,6 +3408,7 @@ function renderPlayerCircle(players){
         const r = state.roles[p.id].role;
         if (r === 'O') roleMini.style.backgroundImage = "url('policerole.jpg')";
         else if (r === 'X') roleMini.style.backgroundImage = "url('bombrole.jpg')";
+        else if (r === 'S') roleMini.style.backgroundImage = "url('spy.jpg')";
         else roleMini.textContent = '?';
         miniHand.appendChild(roleMini);
       }
@@ -3394,7 +3551,7 @@ btnKickYes.addEventListener('click', async (e) => {
 
 /* ===== 以下、配札/リセット/スタート等 ===== */
 
-function buildRoleDeckByPlayerCount(playerCount){
+function buildRoleDeckByPlayerCount(playerCount, includeSpy = false){
   let deck = [];
   switch(playerCount){
     case 3: deck = ['O','O','X','X']; break;
@@ -3408,8 +3565,10 @@ function buildRoleDeckByPlayerCount(playerCount){
       const bad  = Math.max(0, playerCount - good);
       deck = new Array(good).fill('O').concat(new Array(bad).fill('X'));
   }
+  if (includeSpy) deck.push('S');
   return deck;
 }
+
 
 function shuffleInPlace(arr){
   for(let i = arr.length - 1; i > 0; i--){
@@ -3458,7 +3617,7 @@ async function dealInitialHands(){
     hands[p.id] = { cards, open: new Array(cards.length).fill(false) };
   });
 
-  const roleDeck = buildRoleDeckByPlayerCount(playerCount);
+  const roleDeck = buildRoleDeckByPlayerCount(playerCount, state.spyEnabled);
   shuffleInPlace(roleDeck);
 
   const roles = {};
@@ -3515,7 +3674,8 @@ btnTableReset.addEventListener('click', async () => {
   latestPlayers = [];
   state.roundChipsFrontCount = 0;
   lastAllChipsFront = false;
-
+  state.spyEnabled = false;
+  state.maxPlayers = null;
   myHandEl.innerHTML = '';
   myRoleArea.innerHTML = '';
   myRoleArea.classList.add('hidden');
@@ -3541,6 +3701,7 @@ btnTableReset.addEventListener('click', async () => {
   updates[`rooms/${state.roomCode}/roundChipsFrontCount`] = 0;
   updates[`rooms/${state.roomCode}/tables`] = null;
   updates[`rooms/${state.roomCode}/maxPlayers`] = null;
+  updates[`rooms/${state.roomCode}/spyEnabled`] = false;
   updates[`rooms/${state.roomCode}/animEvent`] = null;
 
   await update(ref(db), updates);
