@@ -735,6 +735,8 @@ let lastAllChipsFront = false;
 let roundCollectTimerId = null;
 let stopRoundCollectForSuccess = false;
 let stopRoundCollectForBoom = false;
+let cachedPlayerCenters = new Map();
+let cachedMyHandCenter = null;
 
 // ★ 追加：アニメイベント取りこぼし防止（FIFOキュー）
 let pendingAnimEvents = [];
@@ -1406,6 +1408,7 @@ function subscribeHands(){
     } else {
       renderHands();
     }
+    updateCachedCenters();
     checkOpenCardsAndCollect();
     updateRoundChips();
 
@@ -1535,6 +1538,7 @@ function renderHands(){
   if (latestPlayers.length){
     renderPlayerCircle(latestPlayers);
   }
+  updateCachedCenters();
 }
 
 /* =========================================================
@@ -1689,12 +1693,19 @@ function getFallbackStartCenter(ownerId){
     if (r && r.width && r.height){
       return { cx: r.left + r.width/2, cy: r.top + r.height/2 };
     }
+    if (cachedMyHandCenter){
+      return { cx: cachedMyHandCenter.cx, cy: cachedMyHandCenter.cy };
+    }
     return { cx: window.innerWidth/2, cy: window.innerHeight*0.75 };
   }
   const tag = document.querySelector(`.player-tag[data-player-id="${ownerId}"]`);
   if (tag){
     const r = tag.getBoundingClientRect();
     return { cx: r.left + r.width/2, cy: r.top + r.height/2 };
+  }
+  const cached = cachedPlayerCenters.get(ownerId);
+  if (cached){
+    return { cx: cached.cx, cy: cached.cy };
   }
   return { cx: window.innerWidth/2, cy: window.innerHeight/2 };
 }
@@ -1755,6 +1766,12 @@ async function playAnimOpenToDeck(ev){
   handsDirtyWhileAnimating = false;
 
   renderHands();
+  await waitUntil(() => {
+    updateCachedCenters();
+    return document.querySelectorAll('.my-card, .mini-card').length > 0
+      || cachedMyHandCenter
+      || cachedPlayerCenters.size > 0;
+  }, 700);
 
   const oldLayer = document.getElementById('roundCollectLayer');
   if (oldLayer && oldLayer.parentNode){
@@ -2480,6 +2497,21 @@ function renderPlayerCircle(players){
     }
 
     playerCircle.appendChild(tag);
+  });
+  updateCachedCenters();
+}
+
+function updateCachedCenters(){
+  if (myHandEl){
+    const r = myHandEl.getBoundingClientRect();
+    if (r && r.width && r.height){
+      cachedMyHandCenter = { cx: r.left + r.width/2, cy: r.top + r.height/2 };
+    }
+  }
+  document.querySelectorAll('.player-tag[data-player-id]').forEach(tag => {
+    const r = tag.getBoundingClientRect();
+    if (!r || !r.width || !r.height) return;
+    cachedPlayerCenters.set(tag.dataset.playerId, { cx: r.left + r.width/2, cy: r.top + r.height/2 });
   });
 }
 
