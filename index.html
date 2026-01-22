@@ -19,6 +19,8 @@ h1{margin:0;font-size:18px;}
 .copy-btn.copied, .btn.ghost.copied{background:#16a34a;color:#fff;border-color:#16a34a;}
 .seat-pop{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);background:#00c9e8;border:1px solid #eee;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.12);padding:10px;z-index:220;display:flex;flex-direction:column;gap:10px;min-width:280px;}
 .seat-pop.hidden{display:none;}
+.host-wait-pop{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);background:#111;color:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;box-shadow:0 12px 28px rgba(0,0,0,.22);z-index:225;}
+.host-wait-pop.hidden{display:none;}
 .seat-pop .row{display:flex;gap:8px;align-items:center;}
 .seat-pop label{width:84px;font-size:13px;}
 .seat-pop .tabs{display:flex;gap:6px;flex-wrap:wrap;}
@@ -685,6 +687,7 @@ body.pulse-stop .player-tag .mini-card.pulse{ animation:none; }
     <button class="btn small ghost" id="btnSeatCancel">観戦</button>
   </div>
 </div>
+<div id="hostWaitPop" class="host-wait-pop hidden">ホストが人数を選択中です。</div>
 
 <div id="kickDialog" class="dialog-backdrop hidden">
   <div class="dialog-box" id="kickDialogBox">
@@ -808,6 +811,7 @@ const seatPop = document.getElementById('seatPop');
 const seatTabs = document.getElementById('seatTabs');
 const btnSeatCancel = document.getElementById('btnSeatCancel');
 const seatLabel = seatPop.querySelector('label');
+const hostWaitPop = document.getElementById('hostWaitPop');
 
 const playerCircle = document.getElementById('playerCircle');
 const myHandEl = document.getElementById('myHand');
@@ -1689,6 +1693,10 @@ function renderHands(){
     renderPlayerCircle(latestPlayers);
   }
   updateCachedCenters();
+  if (isDealing){
+    hideAllHandsVisibility();
+    dealtPids.forEach(pid => revealHandForPid(pid));
+  }
 }
 
 /* =========================================================
@@ -2490,9 +2498,6 @@ async function playAnimDealBundles(ev){
     return (myHandEl?.children?.length || 0) >= 0 && document.querySelectorAll('.player-tag').length >= 0;
   }, 700);
 
-  // いったん全員の手札を隠して、配られた人から順に出す
-  hideAllHandsVisibility();
-
   // 安全タイマー（何かあっても固まらない）
   if (dealingSafetyTimer) clearTimeout(dealingSafetyTimer);
   dealingSafetyTimer = setTimeout(() => {
@@ -2737,6 +2742,7 @@ async function renderSeatTabs(){
 
   try {
     seatTabs.innerHTML = '';
+    hostWaitPop?.classList.add('hidden');
 
     const roomRef = ref(db, `rooms/${state.roomCode}`);
     const roomSnap = await get(roomRef);
@@ -2746,6 +2752,7 @@ async function renderSeatTabs(){
 
     if(state.isHost && !roomData.maxPlayers){
       seatLabel.textContent = '人数を選択';
+      hostWaitPop?.classList.add('hidden');
 
       for(let i=2; i<=8; i++){
         const tab = document.createElement('div');
@@ -2770,6 +2777,9 @@ async function renderSeatTabs(){
 
     } else {
       seatLabel.textContent = '席を選択';
+      if (!roomData.maxPlayers){
+        hostWaitPop?.classList.remove('hidden');
+      }
 
       const tablesSnap = await get(ref(db, `rooms/${state.roomCode}/tables`));
       const tables = tablesSnap.val() || {};
