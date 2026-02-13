@@ -3345,61 +3345,50 @@ function renderPlayerCircle(players){
   }
 
   const n = players.length;
-  const radius = 45;
-  const step = (2 * Math.PI) / n;
-  const anchorAngle = Math.PI / 2;
-
   const meIndex = players.findIndex(p => p.id === state.userId);
   const myTurn = isMyTurn();
+  const NAME_TAG_LINE_Y = { 1: 76, 2: 58, 3: 40, 4: 22 };
+  const NAME_TAG_LAYOUTS = {
+    3: { 1:{ line:2, x:20 }, 2:{ line:2, x:70 } },
+    4: { 1:{ line:3, x:20 }, 2:{ line:1, x:50 }, 3:{ line:3, x:70 } },
+    5: { 1:{ line:4, x:20 }, 2:{ line:2, x:20 }, 3:{ line:2, x:70 }, 4:{ line:4, x:70 } },
+    6: { 1:{ line:4, x:20 }, 2:{ line:2, x:20 }, 3:{ line:1, x:50 }, 4:{ line:2, x:70 }, 5:{ line:4, x:70 } },
+    7: { 1:{ line:4, x:20 }, 2:{ line:3, x:20 }, 3:{ line:2, x:20 }, 4:{ line:2, x:70 }, 5:{ line:3, x:70 }, 6:{ line:4, x:70 } },
+    8: { 1:{ line:4, x:20 }, 2:{ line:3, x:20 }, 3:{ line:2, x:20 }, 4:{ line:1, x:50 }, 5:{ line:2, x:70 }, 6:{ line:3, x:70 }, 7:{ line:4, x:70 } }
+  };
 
   const pos = players.map((p, idx) => {
     const k = (meIndex === -1) ? idx : (idx - meIndex + n) % n;
+
+    if (k === 0){
+      return { p, idx, k, x: 50, y: 95 };
+    }
+
+    const layout = NAME_TAG_LAYOUTS[n]?.[k];
+    if (layout){
+      return { p, idx, k, x: layout.x, y: NAME_TAG_LINE_Y[layout.line] ?? 58 };
+    }
+
+    // フォールバック：従来の円配置
+    const radius = 45;
+    const step = (2 * Math.PI) / n;
+    const anchorAngle = Math.PI / 2;
     const angle = anchorAngle + step * k;
     const x = 50 + radius * Math.cos(angle);
     const y = 50 + radius * Math.sin(angle);
-    return { p, idx, k, angle, x, y };
+    return { p, idx, k, x, y };
   });
-
-  let topIdx = 0;
-  for (let i = 1; i < pos.length; i++){
-    if (pos[i].y < pos[topIdx].y) topIdx = i;
-  }
-
-  const enableTopRowSpread = (n === 5 || n === 7);
-  const SPREAD = (n === 5) ? 8 : 10;
-  const EPS = 0.18;
-
-  let topRowSet = null;
-  if (enableTopRowSpread){
-    const minY = Math.min(...pos.map(o => o.y));
-    const topRow = pos.filter(o => Math.abs(o.y - minY) <= EPS);
-
-    if (topRow.length > 2){
-      topRow.sort((a,b)=>Math.abs(a.y-minY)-Math.abs(b.y-minY));
-      topRow.splice(2);
-    }
-    topRowSet = new Set(topRow.map(o => o.idx));
-  }
 
   pos.forEach((o, idx) => {
     const p = o.p;
 
-    let xAdj = o.x;
-    if (enableTopRowSpread && topRowSet && topRowSet.has(o.idx)){
-      xAdj += (o.x < 50 ? -SPREAD : +SPREAD);
-    }
-
     const tag = document.createElement('div');
-
-    const isLiftCount = (n === 6 || n === 8);
-    const isTopLift = (isLiftCount && idx === topIdx);
 
     tag.className =
       'player-tag'
-      + (p.id === state.userId ? ' me' : '')
-      + (isTopLift ? ' at-12' : '');
+      + (p.id === state.userId ? ' me' : '');
 
-    tag.style.left = `${xAdj}%`;
+    tag.style.left = `${o.x}%`;
     tag.style.top  = `${o.y}%`;
 
     tag.dataset.playerId = p.id;
