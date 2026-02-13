@@ -65,7 +65,7 @@ main{
 /* ★ 12時のプレイヤーだけ上げる（tag全体＝ネーム＋カード群をまとめて上に） */
 .player-tag{
   position:absolute;
-  transform:translate(-50%,-50%) translateY(calc(var(--lift,0px) + var(--meLift,0px)));
+  transform:translate(-50%,-50%) translateY(calc(var(--lift,0px) + var(--meLift,0px) + var(--tableOneUnseatedShift,0px)));
   padding:4px 8px;
   border-radius:999px;
   background:#f8f8f8;
@@ -74,8 +74,10 @@ main{
   white-space:nowrap;
   --lift:0px;
   --meLift:0px;
+  --tableOneUnseatedShift:0px;
 }
 .player-tag.at-12{ --lift:-44px; }
+.player-tag.table-one-unseated{ --tableOneUnseatedShift:40px; }
 .player-tag.me{
   background:#111;
   color:#fff;
@@ -3398,7 +3400,8 @@ function renderPlayerCircle(players){
     tag.className =
       'player-tag'
       + (p.id === state.userId ? ' me' : '')
-      + (isTopLift ? ' at-12' : '');
+      + (isTopLift ? ' at-12' : '')
+      + (state.seatedTable === null && Number(p.seatIndex) === 1 ? ' table-one-unseated' : '');
 
     tag.style.left = `${xAdj}%`;
     tag.style.top  = `${o.y}%`;
