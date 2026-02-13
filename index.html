@@ -46,7 +46,7 @@ main{
   position:relative;
   width:310px;
   height:310px;
-  margin:20px auto 0;
+  margin:0 auto 0;
   border-radius:50%;
   border:1px dashed #ddd;
   box-sizing:border-box;
@@ -65,7 +65,7 @@ main{
 /* ★ 12時のプレイヤーだけ上げる（tag全体＝ネーム＋カード群をまとめて上に） */
 .player-tag{
   position:absolute;
-  transform:translate(-50%,-50%) translateY(calc(var(--lift,0px) + var(--meLift,0px)));
+  transform:translate(-50%,-50%) translateY(calc(var(--lift,0px) + var(--meLift,0px) - 20px));
   padding:4px 8px;
   border-radius:999px;
   background:#f8f8f8;
@@ -137,7 +137,7 @@ main{
 .player-tag .mini-card.is-open{ border-color:#555; --ty:10px; }
 
 /* ★ 自分の手札表示（大きめ横並び） */
-.my-hand-wrapper{ margin-top:50px; text-align:center; }
+.my-hand-wrapper{ margin-top:30px; text-align:center; }
 .my-hand-title{ font-size:12px; opacity:.7; display:none; }
 .my-hand{
   display:flex;
