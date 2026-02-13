@@ -3351,10 +3351,14 @@ function renderPlayerCircle(players){
   const anchorAngle = Math.PI / 2;
 
   const meIndex = players.findIndex(p => p.id === state.userId);
+  const seat1Index = players.findIndex(p => p.seatIndex === 1);
+  const anchorIndex = (meIndex !== -1)
+    ? meIndex
+    : (seat1Index !== -1 ? seat1Index : 0);
   const myTurn = isMyTurn();
 
   const pos = players.map((p, idx) => {
-    const k = (meIndex === -1) ? idx : (idx - meIndex + n) % n;
+    const k = (idx - anchorIndex + n) % n;
     const angle = anchorAngle + step * k;
     const x = 50 + radius * Math.cos(angle);
     const y = 50 + radius * Math.sin(angle);
