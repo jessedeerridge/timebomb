@@ -3556,7 +3556,7 @@ function applyOtherPlayerCustomLayout(layout){
   if (!anchorTag || !myNameGuideLines) return;
 
   const circleRect = playerCircle.getBoundingClientRect();
-  const anchorRect = anchorTag.getBoundingClientRect();
+  const anchorTopPx = getGuideAnchorTopPx(anchorTag);
   const guideStyles = getComputedStyle(myNameGuideLines);
 
   const lineStartOffset = parseFloat(guideStyles.getPropertyValue('--line-start-offset')) || -80;
@@ -3569,7 +3569,7 @@ function applyOtherPlayerCustomLayout(layout){
     const slot = layout[idx];
     if (!slot) return;
 
-    const lineTopPx = anchorRect.top + lineStartOffset - (lineGap * (slot.line - 1));
+    const lineTopPx = anchorTopPx + lineStartOffset - (lineGap * (slot.line - 1));
     const yPxInCircle = lineTopPx - circleRect.top;
     const yPercent = (yPxInCircle / circleRect.height) * 100;
 
@@ -3588,6 +3588,33 @@ function getLayoutAnchorTag(){
   return playerCircle.querySelector('.player-tag');
 }
 
+
+function getGuideAnchorTopPx(anchorTag){
+  const rect = anchorTag.getBoundingClientRect();
+  if (anchorTag.classList.contains('me')) return rect.top;
+  return rect.top + getMeTagLiftPx();
+}
+
+let cachedMeTagLiftPx = null;
+
+function getMeTagLiftPx(){
+  if (cachedMeTagLiftPx !== null) return cachedMeTagLiftPx;
+
+  const probe = document.createElement('div');
+  probe.className = 'player-tag me';
+  probe.style.left = '-9999px';
+  probe.style.top = '-9999px';
+  probe.style.visibility = 'hidden';
+
+  playerCircle.appendChild(probe);
+  const styles = getComputedStyle(probe);
+  const meLiftPx = parseFloat(styles.getPropertyValue('--meLift')) || 50;
+  probe.remove();
+
+  cachedMeTagLiftPx = meLiftPx;
+  return cachedMeTagLiftPx;
+}
+
 function updateMyNameGuideLines(){
   if (!myNameGuideLines) return;
 
@@ -3597,8 +3624,7 @@ function updateMyNameGuideLines(){
     return;
   }
 
-  const rect = anchorTag.getBoundingClientRect();
-  myNameGuideLines.style.top = `${rect.top}px`;
+  myNameGuideLines.style.top = `${getGuideAnchorTopPx(anchorTag)}px`;
   myNameGuideLines.classList.remove('hidden');
 }
 
