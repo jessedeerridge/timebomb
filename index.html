@@ -83,6 +83,33 @@ main{
   --meLift:50px;
 }
 
+/* ★ 自分のネームタグの上に引く黒線（高さ調整しやすいよう変数化）
+   - --line-start-offset: ネームタグ上端から1本目までの距離（負の値で上へ）
+   - --line-gap: 線どうしの間隔
+   - --line-thickness: 線の太さ */
+.my-name-guide-lines{
+  position:fixed;
+  left:0;
+  width:100vw;
+  pointer-events:none;
+  z-index:205;
+  --line-start-offset:-80px;
+  --line-gap:98px;
+  --line-thickness:2px;
+}
+.my-name-guide-lines.hidden{ display:none; }
+.my-name-guide-lines .line{
+  position:absolute;
+  left:0;
+  width:100%;
+  height:var(--line-thickness);
+  background:#000;
+}
+.my-name-guide-lines .line:nth-child(1){ top:var(--line-start-offset); }
+.my-name-guide-lines .line:nth-child(2){ top:calc(var(--line-start-offset) - var(--line-gap)); }
+.my-name-guide-lines .line:nth-child(3){ top:calc(var(--line-start-offset) - (var(--line-gap) * 2)); }
+.my-name-guide-lines .line:nth-child(4){ top:calc(var(--line-start-offset) - (var(--line-gap) * 3)); }
+
 /* ★ ネームタグ内レイアウト */
 .player-tag-main{
   display:flex;
@@ -827,6 +854,13 @@ body.pulse-stop .player-tag .mini-card.pulse{ animation:none; }
 </div>
 </main>
 
+<div id="myNameGuideLines" class="my-name-guide-lines hidden" aria-hidden="true">
+  <div class="line"></div>
+  <div class="line"></div>
+  <div class="line"></div>
+  <div class="line"></div>
+</div>
+
 <div id="seatPop" class="seat-pop hidden">
   <div class="row"><label>席を選択</label><div id="seatTabs" class="tabs"></div></div>
   <div class="row" style="justify-content:flex-end">
@@ -968,6 +1002,7 @@ const btnJoin = document.getElementById('btnJoin');
 const lobby = document.getElementById('lobby');
 const roomInfo = document.getElementById('roomInfo');
 const roomInfoLobby = document.getElementById('roomInfoLobby');
+const myNameGuideLines = document.getElementById('myNameGuideLines');
 const copyLinkBtn = document.getElementById('copyLinkBtn');
 
 const seatPop = document.getElementById('seatPop');
@@ -3304,7 +3339,10 @@ function renderPlayerCircle(players){
   clearMiniCardHints();
 
   playerCircle.innerHTML = '';
-  if (!players.length) return;
+  if (!players.length){
+    updateMyNameGuideLines();
+    return;
+  }
 
   const n = players.length;
   const radius = 45;
@@ -3456,8 +3494,26 @@ function renderPlayerCircle(players){
 
     playerCircle.appendChild(tag);
   });
+  updateMyNameGuideLines();
   updateCachedCenters();
 }
+
+function updateMyNameGuideLines(){
+  if (!myNameGuideLines) return;
+
+  const myTag = playerCircle.querySelector('.player-tag.me');
+  if (!myTag){
+    myNameGuideLines.classList.add('hidden');
+    return;
+  }
+
+  const rect = myTag.getBoundingClientRect();
+  myNameGuideLines.style.top = `${rect.top}px`;
+  myNameGuideLines.classList.remove('hidden');
+}
+
+window.addEventListener('resize', updateMyNameGuideLines);
+window.addEventListener('scroll', updateMyNameGuideLines, { passive:true });
 
 function updateCachedCenters(){
   if (myHandEl){
