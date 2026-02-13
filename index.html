@@ -815,7 +815,7 @@ body.pulse-stop .player-tag .mini-card.pulse{ animation:none; }
   <h1>タイムボム</h1>
   <div style="display:flex;align-items:center;gap:6px;">
     <div class="small" id="roomInfo"></div>
-    <button class="btn ghost" id="copyLinkBtn">リンクコピー</button>
+    <button class="btn ghost" id="copyLinkBtn">COPY</button>
   </div>
 </header>
 
@@ -3130,11 +3130,11 @@ copyLinkBtn.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(url);
     copyLinkBtn.classList.add('copied');
-    copyLinkBtn.textContent = 'コピー完了';
+    copyLinkBtn.textContent = 'COPIED';
     inputCode.value = state.roomCode;
     setTimeout(()=>{
       copyLinkBtn.classList.remove('copied');
-      copyLinkBtn.textContent='リンクコピー';
+      copyLinkBtn.textContent='COPY';
     },1500);
   } catch {
     prompt('コピーできません。手動でコピーしてください', url);
