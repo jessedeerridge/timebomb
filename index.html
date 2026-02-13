@@ -81,6 +81,27 @@ main{
   color:#fff;
   border-color:#111;
   --meLift:50px;
+
+  /* ▼ 自分タグの上に出す黒線の調整用変数（ここだけ変えれば高さ調整できます） */
+  --me-top-lines-offset:8px;     /* タグ上端から1本目までの距離 */
+  --me-top-lines-gap:5px;        /* 線と線の間隔 */
+  --me-top-lines-thickness:2px;  /* 線の太さ */
+}
+
+/* ▼ 自分のネームタグ上部に、端から端まで黒線を4本描画 */
+.player-tag.me::after{
+  content:'';
+  position:absolute;
+  left:0;
+  right:0;
+  top:calc(-1 * var(--me-top-lines-offset));
+  height:var(--me-top-lines-thickness);
+  background:#000;
+  pointer-events:none;
+  box-shadow:
+    0 calc(-1 * (var(--me-top-lines-gap) + var(--me-top-lines-thickness))) 0 #000,
+    0 calc(-2 * (var(--me-top-lines-gap) + var(--me-top-lines-thickness))) 0 #000,
+    0 calc(-3 * (var(--me-top-lines-gap) + var(--me-top-lines-thickness))) 0 #000;
 }
 
 /* ★ ネームタグ内レイアウト */
