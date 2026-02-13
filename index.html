@@ -3345,6 +3345,7 @@ function renderPlayerCircle(players){
   }
 
   const n = players.length;
+  const customLayout = getOtherPlayerCustomLayout(n);
   const radius = 45;
   const step = (2 * Math.PI) / n;
   const anchorAngle = Math.PI / 2;
@@ -3365,7 +3366,7 @@ function renderPlayerCircle(players){
     if (pos[i].y < pos[topIdx].y) topIdx = i;
   }
 
-  const enableTopRowSpread = (n === 5 || n === 7);
+  const enableTopRowSpread = !customLayout && (n === 5 || n === 7);
   const SPREAD = (n === 5) ? 8 : 10;
   const EPS = 0.18;
 
@@ -3391,7 +3392,7 @@ function renderPlayerCircle(players){
 
     const tag = document.createElement('div');
 
-    const isLiftCount = (n === 6 || n === 8);
+    const isLiftCount = !customLayout && (n === 6 || n === 8);
     const isTopLift = (isLiftCount && idx === topIdx);
 
     tag.className =
@@ -3403,6 +3404,7 @@ function renderPlayerCircle(players){
     tag.style.top  = `${o.y}%`;
 
     tag.dataset.playerId = p.id;
+    tag.dataset.relativeIndex = String(o.k);
 
     const main = document.createElement('div');
     main.className = 'player-tag-main';
@@ -3494,8 +3496,84 @@ function renderPlayerCircle(players){
 
     playerCircle.appendChild(tag);
   });
+
+  if (customLayout){
+    applyOtherPlayerCustomLayout(customLayout);
+  }
+
   updateMyNameGuideLines();
   updateCachedCenters();
+}
+
+function getOtherPlayerCustomLayout(playerCount){
+  const layoutByCount = {
+    3: [
+      { line: 2, x: 20 },
+      { line: 2, x: 70 }
+    ],
+    4: [
+      { line: 3, x: 20 },
+      { line: 1, x: 50 },
+      { line: 3, x: 70 }
+    ],
+    5: [
+      { line: 4, x: 20 },
+      { line: 2, x: 20 },
+      { line: 2, x: 70 },
+      { line: 4, x: 70 }
+    ],
+    6: [
+      { line: 4, x: 20 },
+      { line: 2, x: 20 },
+      { line: 1, x: 50 },
+      { line: 2, x: 70 },
+      { line: 4, x: 70 }
+    ],
+    7: [
+      { line: 4, x: 20 },
+      { line: 3, x: 20 },
+      { line: 2, x: 20 },
+      { line: 2, x: 70 },
+      { line: 3, x: 70 },
+      { line: 4, x: 70 }
+    ],
+    8: [
+      { line: 4, x: 20 },
+      { line: 3, x: 20 },
+      { line: 2, x: 20 },
+      { line: 1, x: 50 },
+      { line: 2, x: 70 },
+      { line: 3, x: 70 },
+      { line: 4, x: 70 }
+    ]
+  };
+  return layoutByCount[playerCount] || null;
+}
+
+function applyOtherPlayerCustomLayout(layout){
+  const myTag = playerCircle.querySelector('.player-tag.me');
+  if (!myTag || !myNameGuideLines) return;
+
+  const circleRect = playerCircle.getBoundingClientRect();
+  const myRect = myTag.getBoundingClientRect();
+  const guideStyles = getComputedStyle(myNameGuideLines);
+
+  const lineStartOffset = parseFloat(guideStyles.getPropertyValue('--line-start-offset')) || -80;
+  const lineGap = parseFloat(guideStyles.getPropertyValue('--line-gap')) || 98;
+
+  const others = Array.from(playerCircle.querySelectorAll('.player-tag:not(.me)'))
+    .sort((a, b) => Number(a.dataset.relativeIndex || 0) - Number(b.dataset.relativeIndex || 0));
+  others.forEach((tag, idx) => {
+    const slot = layout[idx];
+    if (!slot) return;
+
+    const lineTopPx = myRect.top + lineStartOffset - (lineGap * (slot.line - 1));
+    const yPxInCircle = lineTopPx - circleRect.top;
+    const yPercent = (yPxInCircle / circleRect.height) * 100;
+
+    tag.style.left = `${slot.x}%`;
+    tag.style.top = `${yPercent}%`;
+  });
 }
 
 function updateMyNameGuideLines(){
