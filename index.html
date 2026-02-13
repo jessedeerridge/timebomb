@@ -691,6 +691,14 @@ main{
   height:42px;
   border-color:#000;
 }
+.player-tag .mini-role-slot{
+  width:28px;
+  height:42px;
+  flex:0 0 28px;
+}
+.player-tag .mini-role-slot.is-empty{
+  visibility:hidden;
+}
 
 /* ★ 1（boomcard）の拡大＆揺れアニメ用オーバーレイ */
 .boom-one-overlay{
@@ -3443,6 +3451,9 @@ function renderPlayerCircle(players){
       const cards = handData.cards || [];
       const openFlags = handData.open || [];
 
+      const roleSlot = document.createElement('div');
+      roleSlot.className = 'mini-role-slot is-empty';
+
       if (state.fullOpenMode && state.roles && state.roles[p.id] && state.roles[p.id].role){
         const roleMini = document.createElement('div');
         roleMini.className = 'mini-card mini-role-card';
@@ -3451,8 +3462,12 @@ function renderPlayerCircle(players){
         else if (r === 'X') roleMini.style.backgroundImage = "url('bombrole.jpg')";
         else if (r === 'S') roleMini.style.backgroundImage = "url('spy.jpg')";
         else roleMini.textContent = '?';
-        miniHand.appendChild(roleMini);
+
+        roleSlot.classList.remove('is-empty');
+        roleSlot.appendChild(roleMini);
       }
+
+      miniHand.appendChild(roleSlot);
 
       cards.forEach((v, idx2) => {
         const card = document.createElement('div');
