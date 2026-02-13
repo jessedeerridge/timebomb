@@ -46,7 +46,8 @@ main{
   position:relative;
   width:310px;
   height:310px;
-  margin:20px auto 0;
+  margin:0 auto 0;
+  transform:translateY(-20px);
   border-radius:50%;
   border:1px dashed #ddd;
   box-sizing:border-box;
@@ -80,7 +81,7 @@ main{
   background:#111;
   color:#fff;
   border-color:#111;
-  --meLift:50px;
+  --meLift:30px;
 }
 
 /* ★ 自分のネームタグの上に引く黒線（高さ調整しやすいよう変数化）
@@ -164,7 +165,7 @@ main{
 .player-tag .mini-card.is-open{ border-color:#555; --ty:10px; }
 
 /* ★ 自分の手札表示（大きめ横並び） */
-.my-hand-wrapper{ margin-top:50px; text-align:center; }
+.my-hand-wrapper{ margin-top:30px; text-align:center; }
 .my-hand-title{ font-size:12px; opacity:.7; display:none; }
 .my-hand{
   display:flex;
@@ -3361,6 +3362,11 @@ function renderPlayerCircle(players){
     return { p, idx, k, angle, x, y };
   });
 
+  const anchorSeatIndex = 1;
+  const anchorBySeat = (meIndex === -1)
+    ? players.findIndex(p => p.seatIndex === anchorSeatIndex)
+    : -1;
+
   let topIdx = 0;
   for (let i = 1; i < pos.length; i++){
     if (pos[i].y < pos[topIdx].y) topIdx = i;
@@ -3394,10 +3400,12 @@ function renderPlayerCircle(players){
 
     const isLiftCount = !customLayout && (n === 6 || n === 8);
     const isTopLift = (isLiftCount && idx === topIdx);
+    const isLayoutAnchor = (meIndex === -1 && anchorBySeat !== -1 && idx === anchorBySeat);
 
     tag.className =
       'player-tag'
       + (p.id === state.userId ? ' me' : '')
+      + (isLayoutAnchor ? ' anchor-layout' : '')
       + (isTopLift ? ' at-12' : '');
 
     tag.style.left = `${xAdj}%`;
@@ -3551,23 +3559,23 @@ function getOtherPlayerCustomLayout(playerCount){
 }
 
 function applyOtherPlayerCustomLayout(layout){
-  const myTag = playerCircle.querySelector('.player-tag.me');
-  if (!myTag || !myNameGuideLines) return;
+  const anchorTag = playerCircle.querySelector('.player-tag.me, .player-tag.anchor-layout');
+  if (!anchorTag || !myNameGuideLines) return;
 
   const circleRect = playerCircle.getBoundingClientRect();
-  const myRect = myTag.getBoundingClientRect();
+  const anchorRect = anchorTag.getBoundingClientRect();
   const guideStyles = getComputedStyle(myNameGuideLines);
 
   const lineStartOffset = parseFloat(guideStyles.getPropertyValue('--line-start-offset')) || -80;
   const lineGap = parseFloat(guideStyles.getPropertyValue('--line-gap')) || 98;
 
-  const others = Array.from(playerCircle.querySelectorAll('.player-tag:not(.me)'))
+  const others = Array.from(playerCircle.querySelectorAll('.player-tag:not(.me):not(.anchor-layout)'))
     .sort((a, b) => Number(a.dataset.relativeIndex || 0) - Number(b.dataset.relativeIndex || 0));
   others.forEach((tag, idx) => {
     const slot = layout[idx];
     if (!slot) return;
 
-    const lineTopPx = myRect.top + lineStartOffset - (lineGap * (slot.line - 1));
+    const lineTopPx = anchorRect.top + lineStartOffset - (lineGap * (slot.line - 1));
     const yPxInCircle = lineTopPx - circleRect.top;
     const yPercent = (yPxInCircle / circleRect.height) * 100;
 
