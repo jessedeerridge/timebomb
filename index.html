@@ -65,7 +65,7 @@ main{
 /* ★ 12時のプレイヤーだけ上げる（tag全体＝ネーム＋カード群をまとめて上に） */
 .player-tag{
   position:absolute;
-  transform:translate(-50%,-50%) translateY(calc(var(--lift,0px) + var(--meLift,0px)));
+  transform:translate(-50%,-50%) translateY(calc(var(--lift,0px) + var(--meLift,0px) + var(--spectatorSeatOneOffset,0px)));
   padding:4px 8px;
   border-radius:999px;
   background:#f8f8f8;
@@ -74,7 +74,9 @@ main{
   white-space:nowrap;
   --lift:0px;
   --meLift:0px;
+  --spectatorSeatOneOffset:0px;
 }
+.player-tag.spectator-seat-one{ --spectatorSeatOneOffset:20px; }
 .player-tag.at-12{ --lift:-44px; }
 .player-tag.me{
   background:#111;
@@ -103,7 +105,7 @@ main{
   left:0;
   width:100%;
   height:var(--line-thickness);
-  background:#000;
+  background:transparent;
 }
 .my-name-guide-lines .line:nth-child(1){ top:var(--line-start-offset); }
 .my-name-guide-lines .line:nth-child(2){ top:calc(var(--line-start-offset) - var(--line-gap)); }
@@ -3395,10 +3397,13 @@ function renderPlayerCircle(players){
     const isLiftCount = !customLayout && (n === 6 || n === 8);
     const isTopLift = (isLiftCount && idx === topIdx);
 
+    const isSpectatorSeatOne = (state.seatedTable === null) && (p.seatIndex === 1);
+
     tag.className =
       'player-tag'
       + (p.id === state.userId ? ' me' : '')
-      + (isTopLift ? ' at-12' : '');
+      + (isTopLift ? ' at-12' : '')
+      + (isSpectatorSeatOne ? ' spectator-seat-one' : '');
 
     tag.style.left = `${xAdj}%`;
     tag.style.top  = `${o.y}%`;
