@@ -103,7 +103,7 @@ main{
   left:0;
   width:100%;
   height:var(--line-thickness);
-  background:#000;
+  background:transparent;
 }
 .my-name-guide-lines .line:nth-child(1){ top:var(--line-start-offset); }
 .my-name-guide-lines .line:nth-child(2){ top:calc(var(--line-start-offset) - var(--line-gap)); }
@@ -3405,6 +3405,7 @@ function renderPlayerCircle(players){
 
     tag.dataset.playerId = p.id;
     tag.dataset.relativeIndex = String(o.k);
+    tag.dataset.seatIndex = String(p.seatIndex);
 
     const main = document.createElement('div');
     main.className = 'player-tag-main';
@@ -3551,23 +3552,24 @@ function getOtherPlayerCustomLayout(playerCount){
 }
 
 function applyOtherPlayerCustomLayout(layout){
-  const myTag = playerCircle.querySelector('.player-tag.me');
-  if (!myTag || !myNameGuideLines) return;
+  const anchorTag = getLayoutAnchorTag();
+  if (!anchorTag || !myNameGuideLines) return;
 
   const circleRect = playerCircle.getBoundingClientRect();
-  const myRect = myTag.getBoundingClientRect();
+  const anchorTopPx = getGuideAnchorTopPx(anchorTag);
   const guideStyles = getComputedStyle(myNameGuideLines);
 
   const lineStartOffset = parseFloat(guideStyles.getPropertyValue('--line-start-offset')) || -80;
   const lineGap = parseFloat(guideStyles.getPropertyValue('--line-gap')) || 98;
 
-  const others = Array.from(playerCircle.querySelectorAll('.player-tag:not(.me)'))
+  const others = Array.from(playerCircle.querySelectorAll('.player-tag'))
+    .filter(tag => tag !== anchorTag)
     .sort((a, b) => Number(a.dataset.relativeIndex || 0) - Number(b.dataset.relativeIndex || 0));
   others.forEach((tag, idx) => {
     const slot = layout[idx];
     if (!slot) return;
 
-    const lineTopPx = myRect.top + lineStartOffset - (lineGap * (slot.line - 1));
+    const lineTopPx = anchorTopPx + lineStartOffset - (lineGap * (slot.line - 1));
     const yPxInCircle = lineTopPx - circleRect.top;
     const yPercent = (yPxInCircle / circleRect.height) * 100;
 
@@ -3576,17 +3578,53 @@ function applyOtherPlayerCustomLayout(layout){
   });
 }
 
+function getLayoutAnchorTag(){
+  const myTag = playerCircle.querySelector('.player-tag.me');
+  if (myTag) return myTag;
+
+  const tableOneTag = playerCircle.querySelector('.player-tag[data-seat-index="1"]');
+  if (tableOneTag) return tableOneTag;
+
+  return playerCircle.querySelector('.player-tag');
+}
+
+
+function getGuideAnchorTopPx(anchorTag){
+  const rect = anchorTag.getBoundingClientRect();
+  if (anchorTag.classList.contains('me')) return rect.top;
+  return rect.top + getMeTagLiftPx();
+}
+
+let cachedMeTagLiftPx = null;
+
+function getMeTagLiftPx(){
+  if (cachedMeTagLiftPx !== null) return cachedMeTagLiftPx;
+
+  const probe = document.createElement('div');
+  probe.className = 'player-tag me';
+  probe.style.left = '-9999px';
+  probe.style.top = '-9999px';
+  probe.style.visibility = 'hidden';
+
+  playerCircle.appendChild(probe);
+  const styles = getComputedStyle(probe);
+  const meLiftPx = parseFloat(styles.getPropertyValue('--meLift')) || 50;
+  probe.remove();
+
+  cachedMeTagLiftPx = meLiftPx;
+  return cachedMeTagLiftPx;
+}
+
 function updateMyNameGuideLines(){
   if (!myNameGuideLines) return;
 
-  const myTag = playerCircle.querySelector('.player-tag.me');
-  if (!myTag){
+  const anchorTag = getLayoutAnchorTag();
+  if (!anchorTag){
     myNameGuideLines.classList.add('hidden');
     return;
   }
 
-  const rect = myTag.getBoundingClientRect();
-  myNameGuideLines.style.top = `${rect.top}px`;
+  myNameGuideLines.style.top = `${getGuideAnchorTopPx(anchorTag)}px`;
   myNameGuideLines.classList.remove('hidden');
 }
 
